@@ -38,6 +38,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.userbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.userbar .adminlink {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-2);
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 9px;
+  transition: border-color .15s ease;
+}
+.userbar .adminlink:hover { border-color: var(--brand-2); }
 .userbar .signout {
   flex: none;
   background: transparent;

@@ -31,9 +31,15 @@ A modern, easy-to-use GPS tracking app (web + iOS + Android) that works for many
 - [ ] Live map on mobile
 
 ## Phase 3 — Multi-user
-- [ ] Account types & roles
-- [ ] Sub-users & permissions
+- [x] Account types & roles (super-admin vs. company; companies are Traccar users tagged with Carva attributes)
+- [x] Super-admin company management (create company profiles, provision GPS, assign devices) — `/app/admin`
+- [ ] Sub-users & permissions within a company (drivers/viewers)
 - [ ] Per-tenant device groups
+
+## Local Traccar
+Self-hosted Traccar now runs locally (portable Java, no Docker) — see
+`infra/traccar/`. The web app points at `http://localhost:8082`; the super-admin
+account there owns company + device management.
 
 ## Phase 4 — Features
 - [ ] Trip history & replay

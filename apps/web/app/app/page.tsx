@@ -10,6 +10,7 @@ import './dashboard.css';
 interface AuthUser {
   name: string;
   email: string;
+  administrator: boolean;
 }
 
 // Free OSM raster style — street-level detail without an API key.
@@ -55,7 +56,8 @@ export default function Dashboard() {
         return res.ok ? res.json() : null;
       })
       .then((u) => {
-        if (alive && u) setUser({ name: u.name, email: u.email });
+        if (alive && u)
+          setUser({ name: u.name, email: u.email, administrator: u.administrator });
       })
       .catch(() => {});
     return () => {
@@ -172,7 +174,12 @@ export default function Dashboard() {
           <span className="who" title={user?.email}>
             {user ? user.name : 'Signed in'}
           </span>
-          <button className="signout" onClick={signOut}>Sign out</button>
+          <div className="userbar-actions">
+            {user?.administrator && (
+              <a className="adminlink" href="/app/admin">Admin</a>
+            )}
+            <button className="signout" onClick={signOut}>Sign out</button>
+          </div>
         </div>
 
         {error && <div className="err">Can’t reach tracker server: {error}</div>}
