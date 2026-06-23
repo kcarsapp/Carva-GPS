@@ -1,0 +1,20 @@
+{
+  "name": "carva-gps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Carva GPS — multi-tenant GPS tracking for personal, car rental, school bus, and logistics users. Web + iOS + Android.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "web": "npm run dev --workspace @carva/web",
+    "mobile": "npm run start --workspace @carva/mobile",
+    "api": "npm run dev --workspace @carva/api",
+    "build:shared": "npm run build --workspace @carva/shared",
+    "lint": "echo \"(add lint per package)\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
