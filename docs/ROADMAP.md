@@ -18,16 +18,17 @@ A modern, easy-to-use GPS tracking app (web + iOS + Android) that works for many
 
 ## Phase 1 — Foundation
 - [x] Monorepo (web, mobile, api, shared, ui)
-- [ ] Web app shell runnable
+- [x] Web app shell runnable
 - [ ] Mobile app shell runnable
 - [ ] API shell runnable
 - [ ] Design system / tokens
 
 ## Phase 2 — Core tracking
-- [ ] Traccar REST + WebSocket client
+- [x] Traccar REST client (+ WebSocket client in `@carva/shared`)
 - [ ] Auth / login
-- [ ] Device list
-- [ ] Live map with real-time moving markers (web + mobile)
+- [x] Device list
+- [x] Live map with real-time moving markers (web)
+- [ ] Live map on mobile
 
 ## Phase 3 — Multi-user
 - [ ] Account types & roles

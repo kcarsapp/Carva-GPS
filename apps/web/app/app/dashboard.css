@@ -1,0 +1,92 @@
+.dash {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+.sidebar {
+  background: var(--bg-soft);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-head .brand { font-size: 17px; }
+.live { font-size: 12px; color: var(--accent); font-weight: 700; }
+
+.err {
+  margin: 12px 16px;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-radius: 10px;
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+.empty { color: var(--text-dim); padding: 22px 18px; font-size: 14px; }
+
+.devices { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
+.device {
+  padding: 12px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.device:hover { background: var(--surface); }
+.device.sel { background: var(--surface); border-color: var(--brand); }
+.row1 { display: flex; align-items: center; gap: 8px; }
+.row1 .name { font-weight: 600; flex: 1; }
+.row1 .spd { font-variant-numeric: tabular-nums; color: var(--brand-2); font-weight: 600; font-size: 13px; }
+.row2 { margin-top: 4px; margin-left: 18px; font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.stat { width: 10px; height: 10px; border-radius: 50%; background: var(--text-dim); flex: none; }
+.stat.online { background: var(--accent); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18); }
+.stat.offline { background: #5a6b8c; }
+
+.hint {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.hint code {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--brand-2);
+  font-size: 12px;
+}
+
+.map { height: 100vh; }
+
+/* Vehicle marker */
+.carva-marker {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.carva-marker .arrow {
+  color: #5a6b8c;
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  transition: color 0.2s ease;
+}
+.carva-marker.online .arrow { color: var(--brand-2); }
+
+/* Tame MapLibre's default light popup against the dark UI */
+.maplibregl-ctrl-attrib { font-size: 10px; }
