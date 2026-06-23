@@ -12,6 +12,18 @@ export interface TraccarConfig {
   token?: string;
 }
 
+/** A Traccar user account, as returned by GET/POST /api/session. */
+export interface TraccarUser {
+  id: number;
+  name: string;
+  email: string;
+  readonly: boolean;
+  administrator: boolean;
+  deviceLimit?: number;
+  /** Never populated on responses, but present in the schema. */
+  password?: string | null;
+}
+
 export interface TraccarDevice {
   id: number;
   name: string;

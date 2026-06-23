@@ -1,10 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { knotsToKmh, type TraccarDevice, type TraccarPosition } from '@carva/shared';
 import './dashboard.css';
+
+interface AuthUser {
+  name: string;
+  email: string;
+}
 
 // Free OSM raster style — street-level detail without an API key.
 const MAP_STYLE: maplibregl.StyleSpecification = {
@@ -26,6 +32,7 @@ interface Row {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const mapEl = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Record<number, maplibregl.Marker>>({});
@@ -33,6 +40,36 @@ export default function Dashboard() {
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [followedOnce, setFollowedOnce] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  // Load the signed-in user (middleware guarantees a session, but fetch the
+  // details for display; bounce to /login if the session turns out invalid).
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/auth/session')
+      .then((res) => {
+        if (res.status === 401) {
+          router.replace('/login');
+          return null;
+        }
+        return res.ok ? res.json() : null;
+      })
+      .then((u) => {
+        if (alive && u) setUser({ name: u.name, email: u.email });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [router]);
+
+  async function signOut() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      router.replace('/login');
+    }
+  }
 
   // Init map once.
   useEffect(() => {
@@ -60,6 +97,10 @@ export default function Dashboard() {
           fetch('/api/traccar/devices'),
           fetch('/api/traccar/positions'),
         ]);
+        if (dRes.status === 401 || pRes.status === 401) {
+          router.replace('/login');
+          return;
+        }
         if (!dRes.ok || !pRes.ok) throw new Error(`HTTP ${dRes.status}/${pRes.status}`);
         const devices: TraccarDevice[] = await dRes.json();
         const positions: TraccarPosition[] = await pRes.json();
@@ -125,6 +166,13 @@ export default function Dashboard() {
             <span className="dot" /> Carva GPS
           </div>
           <span className="live">{error ? '⚠ offline' : '● live'}</span>
+        </div>
+
+        <div className="userbar">
+          <span className="who" title={user?.email}>
+            {user ? user.name : 'Signed in'}
+          </span>
+          <button className="signout" onClick={signOut}>Sign out</button>
         </div>
 
         {error && <div className="err">Can’t reach tracker server: {error}</div>}

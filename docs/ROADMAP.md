@@ -25,7 +25,7 @@ A modern, easy-to-use GPS tracking app (web + iOS + Android) that works for many
 
 ## Phase 2 — Core tracking
 - [x] Traccar REST client (+ WebSocket client in `@carva/shared`)
-- [ ] Auth / login
+- [x] Auth / login (Traccar session held in httpOnly cookie; `/app` gated by middleware)
 - [x] Device list
 - [x] Live map with real-time moving markers (web)
 - [ ] Live map on mobile

@@ -28,7 +28,7 @@ export default function Home() {
           <a href="#features">Features</a>
           <a href="#trackers">Trackers</a>
         </div>
-        <a className="btn btn-ghost" href="/app">Sign in</a>
+        <a className="btn btn-ghost" href="/login">Sign in</a>
       </nav>
 
       <header className="hero">

@@ -22,6 +22,36 @@
 .sidebar-head .brand { font-size: 17px; }
 .live { font-size: 12px; color: var(--accent); font-weight: 700; }
 
+.userbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.userbar .who {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userbar .signout {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.userbar .signout:hover { color: var(--text); border-color: var(--brand); }
+
 .err {
   margin: 12px 16px;
   padding: 10px 12px;
