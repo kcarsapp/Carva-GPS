@@ -1,0 +1,114 @@
+/*
+ * Tailwind + Shadcn theme for the Fleet sections (marketing site + /fleet
+ * dashboard). Everything is scoped under `.app-fleet` so it never touches the
+ * existing dark, plain-CSS pages (landing chrome aside, /app, /login, admin).
+ *
+ * Preflight is disabled in tailwind.config.ts; the scoped reset below replaces
+ * the parts of preflight that Shadcn components rely on, limited to `.app-fleet`.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Theme tokens — scoped, so they don't collide with the app's :root vars
+     (e.g. the existing --border is a hex color; here it's an HSL triplet). */
+  .app-fleet {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Brand: indigo */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.75rem;
+
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Scoped preflight subset — only inside .app-fleet. */
+  .app-fleet *,
+  .app-fleet ::before,
+  .app-fleet ::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: hsl(var(--border));
+  }
+  .app-fleet :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+    margin: 0;
+  }
+  .app-fleet :where(p, figure, blockquote, dl, dd, pre) {
+    margin: 0;
+  }
+  .app-fleet :where(ul, ol) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .app-fleet :where(a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+  .app-fleet :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+  .app-fleet :where(button) {
+    background-color: transparent;
+    background-image: none;
+    cursor: pointer;
+  }
+  .app-fleet :where(button):disabled {
+    cursor: default;
+  }
+  .app-fleet :where(svg) {
+    display: block;
+    vertical-align: middle;
+  }
+  .app-fleet :where(img, video) {
+    max-width: 100%;
+    height: auto;
+  }
+  .app-fleet :where(table) {
+    border-collapse: collapse;
+  }
+  .app-fleet :where(input)::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
+}
+
+/* Subtle dotted-grid backdrop used by hero + live demo widget. */
+.app-fleet .bg-grid {
+  background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

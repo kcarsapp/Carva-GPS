@@ -26,6 +26,36 @@ export function parseJsessionId(setCookie: string | null): string | null {
   return match ? match[1] : null;
 }
 
+/* ------------------------------ Roles ----------------------------------- */
+
+/** The three Carva account roles. */
+export type CarvaRole = 'general_admin' | 'company' | 'personal';
+
+export interface TraccarUserLike {
+  administrator?: boolean;
+  attributes?: Record<string, unknown> | null;
+}
+
+/** Derive the Carva role from a Traccar user (admin flag + accountType attr). */
+export function deriveRole(user: TraccarUserLike): CarvaRole {
+  if (user.administrator) return 'general_admin';
+  return accountTypeOf(user) === 'personal' ? 'personal' : 'company';
+}
+
+/** The raw accountType attribute ('company' | 'personal'), if set. */
+export function accountTypeOf(user: TraccarUserLike): string | null {
+  const t = user.attributes?.accountType;
+  return typeof t === 'string' ? t : null;
+}
+
+/** Admin credentials used server-side to create users during signup. */
+export function adminCredentials(): { email: string; password: string } | null {
+  const email = process.env.TRACCAR_ADMIN_EMAIL;
+  const password = process.env.TRACCAR_ADMIN_PASSWORD;
+  if (!email || !password) return null;
+  return { email, password };
+}
+
 /** Options for our session cookie. Secure only in production (so http://localhost works). */
 export function sessionCookieOptions() {
   return {

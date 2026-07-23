@@ -2,11 +2,13 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useI18n, LanguageSwitcher } from '@/lib/i18n-provider';
 import './login.css';
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useI18n();
   const next = params.get('next') || '/app';
 
   const [email, setEmail] = useState('');
@@ -28,11 +30,11 @@ function LoginForm() {
         router.replace(next);
         return;
       }
-      if (res.status === 401) setError('Wrong email or password.');
-      else if (res.status === 502) setError('Can’t reach the tracker server. Try again.');
-      else setError('Something went wrong. Try again.');
+      if (res.status === 401) setError(t('login.err.creds'));
+      else if (res.status === 502) setError(t('login.err.server'));
+      else setError(t('login.err.generic'));
     } catch {
-      setError('Network error. Check your connection.');
+      setError(t('login.err.network'));
     } finally {
       setBusy(false);
     }
@@ -41,16 +43,19 @@ function LoginForm() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={onSubmit}>
-        <a className="brand" href="/">
-          <span className="dot" /> Carva GPS
-        </a>
-        <h1>Sign in</h1>
-        <p className="lead">Use your Traccar account to access the live map.</p>
+        <div className="login-top">
+          <a className="brand" href="/">
+            <span className="dot" /> Carva GPS
+          </a>
+          <LanguageSwitcher className="lang-select" />
+        </div>
+        <h1>{t('login.title')}</h1>
+        <p className="lead">{t('login.lead')}</p>
 
         {error && <div className="err">{error}</div>}
 
         <label>
-          Email
+          {t('login.email')}
           <input
             type="email"
             autoComplete="username"
@@ -61,7 +66,7 @@ function LoginForm() {
           />
         </label>
         <label>
-          Password
+          {t('login.password')}
           <input
             type="password"
             autoComplete="current-password"
@@ -73,10 +78,11 @@ function LoginForm() {
         </label>
 
         <button className="submit" type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in →'}
+          {busy ? t('login.submitting') : t('login.submit')}
         </button>
 
-        <a className="back" href="/">← Back to home</a>
+        <a className="back" href="/signup">No account yet? Sign up</a>
+        <a className="back" href="/">{t('login.back')}</a>
       </form>
     </div>
   );

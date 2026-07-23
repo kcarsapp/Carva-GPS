@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { TraccarUser } from '@carva/shared';
-import { SESSION_COOKIE, traccarBase, traccarCookieHeader } from '@/lib/auth';
+import {
+  SESSION_COOKIE,
+  accountTypeOf,
+  deriveRole,
+  traccarBase,
+  traccarCookieHeader,
+} from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,13 +26,17 @@ export async function GET(req: NextRequest) {
     if (!upstream.ok) {
       return NextResponse.json({ error: 'session_expired' }, { status: 401 });
     }
-    const user = (await upstream.json()) as TraccarUser;
+    const user = (await upstream.json()) as TraccarUser & {
+      attributes?: Record<string, unknown>;
+    };
     return NextResponse.json({
       id: user.id,
       name: user.name,
       email: user.email,
       administrator: user.administrator,
       readonly: user.readonly,
+      accountType: accountTypeOf(user),
+      role: deriveRole(user),
     });
   } catch (e) {
     return NextResponse.json(

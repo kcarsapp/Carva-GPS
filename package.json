@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "web": "npm run dev --workspace @carva/web",
+    "fleet": "npm run dev --workspace @carva/fleet",
     "mobile": "npm run start --workspace @carva/mobile",
     "api": "npm run dev --workspace @carva/api",
     "build:shared": "npm run build --workspace @carva/shared",

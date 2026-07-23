@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { TraccarUser } from '@carva/shared';
 import {
   SESSION_COOKIE,
+  accountTypeOf,
+  deriveRole,
   parseJsessionId,
   sessionCookieOptions,
   traccarBase,
@@ -53,13 +55,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'no_session_cookie' }, { status: 502 });
   }
 
-  const user = (await upstream.json()) as TraccarUser;
+  const user = (await upstream.json()) as TraccarUser & {
+    attributes?: Record<string, unknown>;
+  };
   const res = NextResponse.json({
     id: user.id,
     name: user.name,
     email: user.email,
     administrator: user.administrator,
     readonly: user.readonly,
+    accountType: accountTypeOf(user),
+    role: deriveRole(user),
   });
   res.cookies.set(SESSION_COOKIE, jsessionid, sessionCookieOptions());
   return res;

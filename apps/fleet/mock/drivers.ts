@@ -1,0 +1,86 @@
+import type { Driver } from "./types";
+
+export const drivers: Driver[] = [
+  {
+    id: "drv-001",
+    name: "Marcus Bell",
+    avatarInitials: "MB",
+    phone: "+1 (415) 555-0142",
+    status: "driving",
+    safetyScore: 96,
+    assignedVehicleId: "veh-001",
+    licenseClass: "Class A CDL",
+    hoursThisWeek: 38,
+  },
+  {
+    id: "drv-002",
+    name: "Sofia Marin",
+    avatarInitials: "SM",
+    phone: "+1 (415) 555-0188",
+    status: "driving",
+    safetyScore: 91,
+    assignedVehicleId: "veh-002",
+    licenseClass: "Class A CDL",
+    hoursThisWeek: 41,
+  },
+  {
+    id: "drv-003",
+    name: "Dev Patel",
+    avatarInitials: "DP",
+    phone: "+1 (415) 555-0211",
+    status: "resting",
+    safetyScore: 84,
+    assignedVehicleId: "veh-003",
+    licenseClass: "Class B CDL",
+    hoursThisWeek: 44,
+  },
+  {
+    id: "drv-004",
+    name: "Amara Okafor",
+    avatarInitials: "AO",
+    phone: "+1 (415) 555-0299",
+    status: "on_duty",
+    safetyScore: 98,
+    assignedVehicleId: "veh-004",
+    licenseClass: "Class A CDL",
+    hoursThisWeek: 29,
+  },
+  {
+    id: "drv-005",
+    name: "Liam Walsh",
+    avatarInitials: "LW",
+    phone: "+1 (415) 555-0307",
+    status: "off_duty",
+    safetyScore: 72,
+    assignedVehicleId: "veh-005",
+    licenseClass: "Class B CDL",
+    hoursThisWeek: 35,
+  },
+  {
+    id: "drv-006",
+    name: "Yuki Tanaka",
+    avatarInitials: "YT",
+    phone: "+1 (415) 555-0345",
+    status: "driving",
+    safetyScore: 89,
+    assignedVehicleId: "veh-006",
+    licenseClass: "Class A CDL",
+    hoursThisWeek: 40,
+  },
+  {
+    id: "drv-007",
+    name: "Carlos Rivera",
+    avatarInitials: "CR",
+    phone: "+1 (415) 555-0390",
+    status: "on_duty",
+    safetyScore: 80,
+    assignedVehicleId: null,
+    licenseClass: "Class A CDL",
+    hoursThisWeek: 22,
+  },
+];
+
+export function getDriverById(id: string | null): Driver | undefined {
+  if (!id) return undefined;
+  return drivers.find((d) => d.id === id);
+}

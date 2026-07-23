@@ -1,0 +1,66 @@
+import type { Alert } from "./types";
+
+export const alerts: Alert[] = [
+  {
+    id: "alt-001",
+    vehicleId: "veh-005",
+    type: "maintenance_due",
+    severity: "critical",
+    title: "Maintenance overdue — Truck 021",
+    description: "Brake inspection 1,200 km past due. Vehicle pulled for service.",
+    timestamp: "2026-06-28T08:55:00Z",
+    acknowledged: false,
+  },
+  {
+    id: "alt-002",
+    vehicleId: "veh-007",
+    type: "battery_low",
+    severity: "critical",
+    title: "Telematics offline — Truck 016",
+    description: "No GPS ping for 3h 29m. Device battery critically low (15%).",
+    timestamp: "2026-06-28T06:12:00Z",
+    acknowledged: false,
+  },
+  {
+    id: "alt-003",
+    vehicleId: "veh-001",
+    type: "speeding",
+    severity: "warning",
+    title: "Speeding event — Truck 014",
+    description: "84 km/h in a 70 km/h zone on I-80 W. Driver notified via in-cab alert.",
+    timestamp: "2026-06-28T09:31:00Z",
+    acknowledged: false,
+  },
+  {
+    id: "alt-004",
+    vehicleId: "veh-003",
+    type: "low_fuel",
+    severity: "warning",
+    title: "Low fuel — Truck 008",
+    description: "Fuel at 41% with 220 km remaining route distance.",
+    timestamp: "2026-06-28T09:05:00Z",
+    acknowledged: true,
+  },
+  {
+    id: "alt-005",
+    vehicleId: "veh-002",
+    type: "harsh_braking",
+    severity: "info",
+    title: "Harsh braking — Van 027",
+    description: "Sudden deceleration detected on US-101 N. Logged for coaching.",
+    timestamp: "2026-06-28T08:47:00Z",
+    acknowledged: true,
+  },
+  {
+    id: "alt-006",
+    vehicleId: "veh-004",
+    type: "geofence",
+    severity: "info",
+    title: "Geofence entry — EV 102",
+    description: "Entered 'Stockton Distribution Zone' ahead of schedule.",
+    timestamp: "2026-06-28T09:18:00Z",
+    acknowledged: true,
+  },
+];
+
+export const unacknowledgedAlerts = alerts.filter((a) => !a.acknowledged);

@@ -32,6 +32,10 @@ export interface TraccarDevice {
   lastUpdate?: string;
   category?: string;
   groupId?: number;
+  /** Phone number of the SIM inside the tracker (for SMS commands). */
+  phone?: string;
+  model?: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface TraccarPosition {
@@ -46,6 +50,30 @@ export interface TraccarPosition {
   course: number;
   address?: string;
   accuracy?: number;
+  attributes: Record<string, unknown>;
+}
+
+/** A command type supported by a device's protocol (GET /api/commands/types). */
+export interface TraccarCommandType {
+  type: string;
+}
+
+/** Body for POST /api/commands/send (an immediate GPRS command). */
+export interface TraccarSendCommand {
+  deviceId: number;
+  type: string;
+  attributes?: Record<string, unknown>;
+}
+
+/** An event as returned by GET /api/reports/events (ignition, geofence, …). */
+export interface TraccarEvent {
+  id: number;
+  type: string;
+  eventTime: string;
+  deviceId: number;
+  positionId?: number;
+  geofenceId?: number;
+  maintenanceId?: number;
   attributes: Record<string, unknown>;
 }
 

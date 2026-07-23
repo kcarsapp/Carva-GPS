@@ -26,9 +26,12 @@ async function proxy(
   };
 
   let body: string | undefined;
-  if (method === 'POST' || method === 'PUT') {
-    body = await req.text();
-    headers['Content-Type'] = req.headers.get('content-type') ?? 'application/json';
+  if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+    // DELETE included: Traccar's DELETE /api/permissions expects a JSON body.
+    body = (await req.text()) || undefined;
+    if (body) {
+      headers['Content-Type'] = req.headers.get('content-type') ?? 'application/json';
+    }
   }
 
   try {

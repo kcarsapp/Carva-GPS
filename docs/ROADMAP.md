@@ -42,7 +42,7 @@ Self-hosted Traccar now runs locally (portable Java, no Docker) — see
 account there owns company + device management.
 
 ## Phase 4 — Features
-- [ ] Trip history & replay
+- [x] Trip history & replay (web — route line + animated playback, `/app` History tab)
 - [ ] Geofences
 - [ ] Alerts & push notifications
 - [ ] Reports & exports

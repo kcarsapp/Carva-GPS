@@ -1,133 +1,358 @@
+/* Carva fleet dashboard — Carva Fleet look (indigo + slate, scoped to .dash). */
 .dash {
+  --bg: #f8fafc;          /* slate-50 canvas */
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;   /* slate-100 */
+  --border: #e2e8f0;      /* slate-200 */
+  --text: #0f172a;        /* slate-900 */
+  --dim: #64748b;         /* slate-500 (muted-foreground) */
+  --brand: #4f46e5;       /* indigo-600 */
+  --brand-ink: #4338ca;   /* indigo-700 */
+  --moving: #10b981;      /* emerald-500 */
+  --idle: #f59e0b;        /* amber-500 */
+  --stopped: #ef4444;     /* red-500 */
+  --offline: #94a3b8;     /* slate-400 */
+  --unknown: #64748b;
+  --sel-bg: #eef2ff;      /* indigo-50 */
+  --field-focus: #ffffff;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.08);
+
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 360px 1fr;
   height: 100vh;
   width: 100vw;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Dark theme — Carva Fleet dark tokens; everything else is var-driven. */
+.dash.dark {
+  --bg: #0a0e1a;          /* deep slate navy */
+  --surface: #111a2e;     /* card */
+  --surface-2: #1b2438;   /* secondary / accent */
+  --border: #273349;      /* slate-700-ish */
+  --text: #f1f5f9;        /* slate-100 */
+  --dim: #94a3b8;         /* slate-400 */
+  --brand: #6366f1;       /* indigo-500 */
+  --brand-ink: #a5b4fc;   /* indigo-300 (on-dark text) */
+  --moving: #34d399;      /* emerald-400 */
+  --idle: #fbbf24;        /* amber-400 */
+  --stopped: #f87171;     /* red-400 */
+  --offline: #64748b;     /* slate-500 */
+  --unknown: #94a3b8;
+  --sel-bg: #1e2547;      /* indigo-tinted */
+  --field-focus: #1b2438;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+/* Keep MapLibre's controls/attribution legible on the dark basemap. */
+.dash.dark .maplibregl-ctrl-attrib { background: rgba(17, 26, 46, 0.85); }
+.dash.dark .maplibregl-ctrl-attrib a { color: var(--dim); }
+
+/* ---------- Sidebar ---------- */
 .sidebar {
-  background: var(--bg-soft);
-  border-right: 1px solid var(--border);
+  background: var(--surface);
+  border-inline-end: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  z-index: 2;
 }
-.sidebar-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 18px 14px;
-  border-bottom: 1px solid var(--border);
-}
-.sidebar-head .brand { font-size: 17px; }
-.live { font-size: 12px; color: var(--accent); font-weight: 700; }
 
-.userbar {
+.sb-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 10px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border);
 }
-.userbar .who {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
-.userbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-.userbar .adminlink {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--brand-2);
-  border: 1px solid var(--border);
-  padding: 6px 10px;
-  border-radius: 9px;
-  transition: border-color .15s ease;
+.sb-brand .dot {
+  width: 24px; height: 24px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--brand), #818cf8);
 }
-.userbar .adminlink:hover { border-color: var(--brand-2); }
-.userbar .signout {
-  flex: none;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 9px;
-  cursor: pointer;
-  transition: color .15s ease, border-color .15s ease;
+.sb-top .grow { flex: 1; }
+.sb-top .sb-lang { padding: 5px 7px; font-size: 12px; max-width: 122px; }
+.sb-top .theme-btn {
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--dim);
+  border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
+  display: grid; place-items: center; line-height: 1;
 }
-.userbar .signout:hover { color: var(--text); border-color: var(--brand); }
+.sb-top .theme-btn:hover { color: var(--text); border-color: var(--brand); }
+.sb-live { font-size: 11px; font-weight: 700; color: var(--moving); display: flex; align-items: center; gap: 5px; }
+.sb-live.off { color: var(--stopped); }
+.sb-live .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
-.err {
-  margin: 12px 16px;
-  padding: 10px 12px;
-  font-size: 13px;
-  border-radius: 10px;
-  color: var(--danger);
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.3);
+.sb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--dim);
 }
-.empty { color: var(--text-dim); padding: 22px 18px; font-size: 14px; }
-
-.devices { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
-.device {
-  padding: 12px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.15s ease, border-color 0.15s ease;
+.sb-user .uname { flex: 1; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-user a, .sb-user button {
+  font-size: 12px; font-weight: 600; color: var(--dim);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 9px; cursor: pointer; text-decoration: none;
 }
-.device:hover { background: var(--surface); }
-.device.sel { background: var(--surface); border-color: var(--brand); }
-.row1 { display: flex; align-items: center; gap: 8px; }
-.row1 .name { font-weight: 600; flex: 1; }
-.row1 .spd { font-variant-numeric: tabular-nums; color: var(--brand-2); font-weight: 600; font-size: 13px; }
-.row2 { margin-top: 4px; margin-left: 18px; font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.sb-user .admin { color: var(--brand-ink); }
+.sb-user a:hover, .sb-user button:hover { border-color: var(--brand); color: var(--text); }
 
-.stat { width: 10px; height: 10px; border-radius: 50%; background: var(--text-dim); flex: none; }
-.stat.online { background: var(--accent); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18); }
-.stat.offline { background: #5a6b8c; }
-
-.hint {
-  border-top: 1px solid var(--border);
-  padding: 14px 16px;
-  font-size: 12px;
-  color: var(--text-dim);
+/* Tabs */
+.tabs { display: flex; border-bottom: 1px solid var(--border); }
+.tab {
+  flex: 1; text-align: center; padding: 11px 0; font-size: 13px; font-weight: 600;
+  color: var(--dim); cursor: pointer; border-bottom: 2px solid transparent;
 }
-.hint code {
-  display: block;
-  margin-top: 6px;
-  padding: 8px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--brand-2);
-  font-size: 12px;
+.tab.on { color: var(--brand-ink); border-bottom-color: var(--brand); }
+
+/* Search */
+.search { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.search input {
+  width: 100%; border: 1px solid var(--border); border-radius: 9px;
+  padding: 9px 12px; font-size: 13px; outline: none; background: var(--surface-2);
+}
+.search input:focus { border-color: var(--brand); background: var(--field-focus); }
+
+.group-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; font-size: 12px; font-weight: 700; color: var(--dim);
+  background: var(--surface-2); border-bottom: 1px solid var(--border);
 }
 
-.map { height: 100vh; }
-
-/* Vehicle marker */
-.carva-marker {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
+/* Device rows */
+.units { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.unit {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
 }
-.carva-marker .arrow {
-  color: #5a6b8c;
-  font-size: 22px;
-  line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-  transition: color 0.2s ease;
+.unit:hover { background: var(--surface-2); }
+.unit.sel { background: var(--sel-bg); box-shadow: inset 3px 0 0 var(--brand); }
+.unit .chk { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; flex: none; }
+.unit .u-ico {
+  width: 34px; height: 34px; flex: none; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  display: grid; place-items: center; color: var(--dim);
 }
-.carva-marker.online .arrow { color: var(--brand-2); }
+.unit .u-ico svg { width: 20px; height: 20px; }
+.unit .u-ico.moving { color: var(--moving); }
+.unit .u-ico.idle { color: var(--idle); }
+.unit .u-ico.stopped { color: var(--stopped); }
+.unit .u-ico.offline { color: var(--offline); }
+.unit .u-main { flex: 1; min-width: 0; }
+.unit .u-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unit .u-time { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.unit .u-meta { display: flex; align-items: center; gap: 9px; flex: none; }
+.unit .u-spd { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; min-width: 44px; text-align: end; }
+.ign { font-size: 13px; line-height: 1; opacity: 0.35; }
+.ign.on { opacity: 1; }
+.sdot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+.sdot.moving { background: var(--moving); }
+.sdot.idle { background: var(--idle); }
+.sdot.stopped { background: var(--stopped); }
+.sdot.offline { background: var(--offline); }
+.sdot.unknown { background: var(--unknown); }
 
-/* Tame MapLibre's default light popup against the dark UI */
+.empty, .hint-row { color: var(--dim); padding: 18px 16px; font-size: 13px; }
+
+/* ---------- Map ---------- */
+.map-wrap { position: relative; min-width: 0; }
+.map { position: absolute; inset: 0; }
+
+/* Vehicles + route replay render as GPU GL layers (see page.tsx) so they stay
+   locked to their coordinates through zoom — no DOM marker styles needed. */
 .maplibregl-ctrl-attrib { font-size: 10px; }
+
+/* ---------- Map control stack ---------- */
+.map-tools {
+  position: absolute; inset-block-start: 12px; inset-inline-end: 12px; z-index: 5;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+}
+.mt-group {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow); overflow: visible;
+}
+.mt-btn {
+  width: 38px; height: 38px; padding: 0; border: none; background: transparent;
+  color: var(--text); cursor: pointer; display: grid; place-items: center;
+  font-size: 20px; line-height: 1;
+}
+.mt-group .mt-btn + .mt-btn { border-top: 1px solid var(--border); }
+.mt-btn:hover { background: var(--surface-2); }
+.mt-btn:first-child { border-radius: 10px 10px 0 0; }
+.mt-btn:last-child { border-radius: 0 0 10px 10px; }
+.mt-group .mt-btn:only-child { border-radius: 10px; }
+.mt-btn.on { color: var(--brand); background: var(--sel-bg); }
+.mt-btn svg { width: 19px; height: 19px; }
+.mt-badge {
+  position: absolute; top: 3px; inset-inline-end: 3px;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--stopped); color: #fff; font-size: 10px; font-weight: 700;
+  display: grid; place-items: center;
+}
+.mt-pop {
+  position: absolute; inset-inline-end: calc(100% + 8px); top: 0;
+  min-width: 130px; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+}
+.mt-pop button {
+  padding: 9px 12px; border: none; background: transparent; cursor: pointer;
+  text-align: start; color: var(--text); font-size: 13px;
+}
+.mt-pop button:hover { background: var(--surface-2); }
+.mt-pop button.on { color: var(--brand); font-weight: 700; }
+
+/* Ruler read-out (opposite corner so it never overlaps the tool stack). */
+.measure-readout {
+  position: absolute; inset-block-start: 12px; inset-inline-start: 12px; z-index: 5;
+  max-width: 240px; padding: 7px 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: var(--shadow);
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+
+/* Events feed panel (opens beside the bell). */
+.events-panel {
+  position: absolute; inset-block-start: 12px; inset-inline-end: 60px; z-index: 6;
+  width: 300px; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: var(--shadow);
+}
+.ep-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  font-weight: 700; font-size: 14px;
+}
+.ep-head .grow { flex: 1; }
+.ep-head button {
+  width: 26px; height: 26px; border: none; background: transparent; cursor: pointer;
+  color: var(--dim); border-radius: 7px; font-size: 16px; line-height: 1;
+}
+.ep-head button:hover { background: var(--surface-2); color: var(--text); }
+.ep-body { overflow-y: auto; }
+.ep-body ul { list-style: none; margin: 0; padding: 0; }
+.ep-body li {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
+  padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.ep-body li:last-child { border-bottom: none; }
+.ev-type { font-weight: 600; }
+.ev-dev { color: var(--dim); }
+.ev-time { margin-inline-start: auto; color: var(--dim); font-size: 12px; }
+.ep-msg { padding: 16px 12px; color: var(--dim); font-size: 13px; }
+.ep-msg.err { color: var(--stopped); }
+
+/* ---------- Vehicle popup (anchored to the marker) ---------- */
+/* The positioner sets --px/--py to the marker's screen pixels; the card sits
+   centred just above that point, with a tail pointing down to the vehicle. */
+.veh-popup {
+  position: absolute; top: 0; left: 0; z-index: 4;
+  transform: translate(var(--px, 0), var(--py, 0)) translate(-50%, 20px);
+  pointer-events: none;
+}
+.veh-popup .detail { pointer-events: auto; }
+/* Upward tail (popup sits below the marker). */
+.veh-popup::after {
+  content: ''; position: absolute; left: 50%; top: 12px;
+  width: 14px; height: 14px; background: var(--surface);
+  border-left: 1px solid var(--border); border-top: 1px solid var(--border);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.detail {
+  width: 300px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.detail-head {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+}
+.detail-head .dh-ico {
+  width: 34px; height: 34px; flex: none; border-radius: 9px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  display: grid; place-items: center; color: var(--dim);
+}
+.detail-head .dh-ico svg { width: 21px; height: 21px; }
+.detail-head .dh-ico.moving { color: var(--moving); }
+.detail-head .dh-ico.idle { color: var(--idle); }
+.detail-head .dh-ico.stopped { color: var(--stopped); }
+.detail-head .dh-ico.offline { color: var(--offline); }
+.detail-head .dh-name { font-weight: 700; font-size: 15px; }
+/* Soft "tinted" pills, matching the Carva Fleet badge style
+   (e.g. emerald-500/10 background + emerald text). */
+.detail-head .badge {
+  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.badge.moving { background: color-mix(in srgb, var(--moving) 14%, transparent); color: var(--moving); }
+.badge.idle { background: color-mix(in srgb, var(--idle) 16%, transparent); color: var(--idle); }
+.badge.stopped { background: color-mix(in srgb, var(--stopped) 15%, transparent); color: var(--stopped); }
+.badge.offline { background: var(--surface-2); color: var(--dim); }
+.badge.unknown { background: var(--surface-2); color: var(--dim); }
+.detail-head .dh-time { font-size: 12px; color: var(--dim); }
+.detail-head .grow { flex: 1; }
+.detail-head .close { border: none; background: var(--surface-2); border-radius: 8px; width: 28px; height: 28px; cursor: pointer; color: var(--dim); font-size: 16px; }
+
+.detail-body { display: flex; flex-direction: column; }
+.sensors {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: var(--border);
+}
+.sensor { background: var(--surface); padding: 9px 13px; }
+.sensor .s-label { font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 5px; }
+.sensor .s-val { font-size: 14px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.sensor .s-val.on { color: var(--moving); }
+.sensor .s-val.off { color: var(--stopped); }
+.addr {
+  padding: 11px 14px; border-top: 1px solid var(--border);
+  font-size: 13px; color: var(--text); line-height: 1.45;
+}
+.addr .a-label { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
+
+/* ---------- History tab ---------- */
+.hist { padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.hist label { font-size: 12px; font-weight: 600; color: var(--dim); display: block; margin-bottom: 5px; }
+.hist select {
+  width: 100%; border: 1px solid var(--border); border-radius: 9px;
+  padding: 9px 11px; font-size: 13px; background: var(--surface-2); outline: none;
+}
+.ranges { display: flex; gap: 7px; flex-wrap: wrap; }
+.ranges button {
+  flex: 1 1 auto; min-width: 52px; border: 1px solid var(--border); background: var(--surface);
+  border-radius: 9px; padding: 8px 6px; font-size: 12px; font-weight: 600; color: var(--dim); cursor: pointer;
+}
+.ranges button.on { border-color: var(--brand); color: var(--brand-ink); background: var(--sel-bg); }
+.hist-custom { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.hist-custom label { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.hist-custom input {
+  width: 100%; border: 1px solid var(--border); border-radius: 9px;
+  padding: 8px 10px; font-size: 13px; background: var(--surface-2); color: inherit; outline: none;
+}
+.hist-custom .apply {
+  border: none; background: var(--brand); color: #fff; border-radius: 9px;
+  padding: 9px 0; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.hist-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hist-summary .hs { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; }
+.hist-summary .hs .l { font-size: 11px; color: var(--dim); }
+.hist-summary .hs .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
+.replay { display: flex; align-items: center; gap: 10px; }
+.replay button {
+  width: 38px; height: 38px; border-radius: 10px; border: none; cursor: pointer;
+  background: var(--brand); color: #fff; font-size: 15px; flex: none;
+}
+.replay input[type="range"] { flex: 1; accent-color: var(--brand); }
+.replay .rtime { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; min-width: 64px; text-align: end; }
+.hist-msg { font-size: 13px; color: var(--dim); }
+.hist-err { font-size: 13px; color: var(--stopped); }
