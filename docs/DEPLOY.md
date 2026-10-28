@@ -148,6 +148,53 @@ When the tracker connects you'll see its protocol session and — at first — a
 
 ---
 
+## 9. Live push (real-time tracking)
+
+The dashboard gets each fix the moment Traccar decodes it, over a WebSocket,
+instead of re-reading every device every 5 seconds. Three pieces have to line
+up; two of them ship with the app, so **on a new VPS only step 1 is manual**.
+
+1. **nginx** — a Next.js route handler cannot proxy an HTTP upgrade, so nginx
+   must join the browser to Traccar directly. Copy the two blocks from
+   [`infra/nginx/traccar-socket.conf`](../infra/nginx/traccar-socket.conf) into
+   the vhost (`/etc/nginx/conf.d/gps.carvarent.com.conf`): the `map` at the top
+   of the file, the `location = /traccar-socket` inside the HTTPS `server`.
+   Then **`nginx -t && systemctl reload nginx`** — never reload on a failed
+   `-t`, or the whole vhost (dashboard included) goes down.
+
+2. **The cookie** — `/api/auth/login` and `/api/auth/session` both set an
+   httpOnly `JSESSIONID` cookie scoped to `/traccar-socket`, because
+   `new WebSocket()` cannot send headers and Traccar only recognises its own
+   cookie name. Already in the app; nothing to configure. Existing logins pick
+   it up on their next page load, so nobody has to sign in again.
+
+3. **The client** — `lib/live-socket.ts` owns the connection and
+   `lib/live-data.ts` merges frames into one shared, reference-counted store.
+
+### Verifying it
+
+The command-bar badge is the readout: **Live** (green, pulsing) means frames
+are streaming; **Polling** (amber) means the socket is unavailable and the 5s
+fallback is carrying the page. So if the badge still says Polling after a
+deploy, step 1 did not take. Also useful:
+
+```bash
+# handshake should be 101, not 404/403
+curl -i -s -o /dev/null -w '%{http_code}
+'   -H 'Connection: Upgrade' -H 'Upgrade: websocket'   -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: AAAAAAAAAAAAAAAAAAAAAA=='   https://gps.carvarent.com/traccar-socket
+```
+
+A 403 means the `Origin` check in the `map` rejected the caller; a 404 means
+the `location` is missing; a 502 means nginx cannot reach Traccar on
+`127.0.0.1:8082`.
+
+**It degrades, it does not break.** If the socket cannot connect the app keeps
+polling exactly as before, so a missing nginx block costs real-time updates and
+nothing else. A handshake that hangs (a proxy that swallows upgrades) is
+treated as a failure after 10 seconds rather than waited on forever.
+
+---
+
 ## Quick reference
 | Item | Value |
 |---|---|
@@ -156,3 +203,4 @@ When the tracker connects you'll see its protocol session and — at first — a
 | TK905B-4G port | **5015** (Huabao/JT808); fallback 5093 (Watch) |
 | Device id | tracker **IMEI, with leading zeros** |
 | Web app env | `TRACCAR_URL=http://localhost:8082` |
+| Live push | `wss://HOST/traccar-socket` → `127.0.0.1:8082/api/socket` |

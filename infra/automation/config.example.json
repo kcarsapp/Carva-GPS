@@ -1,0 +1,46 @@
+{
+  "_comment": "Copy to config.json and edit. PLACEHOLDERS ONLY - never commit real credentials. Prefer supplying email/password via the systemd EnvironmentFile (CARVA_TRACCAR_EMAIL / CARVA_TRACCAR_PASSWORD) and leaving them empty here.",
+
+  "_enabled": "MASTER SWITCH. Must be exactly true before any command is sent. Anything else (false, missing, \"true\" as a string) means dry-run.",
+  "enabled": false,
+
+  "traccarUrl": "http://localhost:8082",
+  "email": "REPLACE_ME@example.com",
+  "password": "REPLACE_ME",
+
+  "_pollIntervalMs": "How often to poll Traccar for new events. Min 5000.",
+  "pollIntervalMs": 30000,
+
+  "_lookbackOverlapMs": "How far back each poll re-queries. Covers Traccar writing an event slightly after its eventTime; duplicates are filtered by event id.",
+  "lookbackOverlapMs": 120000,
+
+  "_requestTimeoutMs": "Hard timeout on every Traccar HTTP request.",
+  "requestTimeoutMs": 15000,
+
+  "_debounceMs": "Ignore a repeat of the same (device, geofence, enter/exit) within this window. Stops GPS jitter on a fence boundary from machine-gunning relay commands. Min 1000 - it cannot be disabled.",
+  "debounceMs": 300000,
+
+  "_maxCutsPerHour": "Fleet-wide rolling-hour ceiling on cut commands. Beyond it the service logs loudly and refuses. Set 0 to allow alerts but never cut.",
+  "maxCutsPerHour": 6,
+
+  "_maxImmediateCutKmh": "Above this speed an 'immediate' cut is downgraded to a safe (deferred) cut. Unknown speed also downgrades.",
+  "maxImmediateCutKmh": 5,
+
+  "_maxCutEventAgeMs": "A geofence crossing older than this NEVER touches the relay; the alert is still raised and flagged 'stale'. This is what stops a restart after downtime from immobilising a car for a fence it crossed hours ago. Min 60000.",
+  "maxCutEventAgeMs": 600000,
+
+  "_maxPositionAgeMs": "A GPS fix older than this counts as 'speed unknown', so a tracker that went offline at speed cannot present its last reported 0 as proof the car is parked. Min 30000.",
+  "maxPositionAgeMs": 180000,
+
+  "_maxLookbackMs": "Hard floor on how far back a query window may reach, so a stuck watermark cannot grow every query without bound. Only costs late alerts - stale events cannot cut.",
+  "maxLookbackMs": 21600000,
+
+  "_alertsPath": "Append-only JSONL the web app reads. One JSON object per line.",
+  "alertsPath": "/var/lib/carva/alerts.jsonl",
+
+  "_alertsMaxBytes": "Roll alerts.jsonl to alerts.jsonl.1 past this size (one generation kept). 0 disables. Keeps the audit log from filling the disk Traccar shares.",
+  "alertsMaxBytes": 67108864,
+
+  "_statePath": "Watermark + debounce + rate-limit state. Delete it to re-arm from now (it will NOT replay history).",
+  "statePath": "/var/lib/carva/automation-state.json"
+}
