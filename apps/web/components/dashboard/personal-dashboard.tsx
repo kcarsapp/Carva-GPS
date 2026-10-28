@@ -100,7 +100,9 @@ export function PersonalDashboard({
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {v.speedKmh > 0 ? `${v.speedKmh} km/h · ` : ""}
-                updated {timeAgo(v.lastUpdated)}
+                {v.lastUpdated
+                  ? `updated ${timeAgo(v.lastUpdated)}`
+                  : "never reported"}
               </p>
             </button>
           ))}

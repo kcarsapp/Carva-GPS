@@ -1,62 +1,53 @@
+"use client";
+
 import Link from "next/link";
-import { Truck } from "lucide-react";
+import { Mail, MessageCircle } from "lucide-react";
 
-const columns = [
-  {
-    title: "Product",
-    links: [
-      { label: "Features", href: "/#features" },
-      { label: "Live demo", href: "/#demo" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Dashboard", href: "/fleet" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "/" },
-      { label: "Customers", href: "/" },
-      { label: "Careers", href: "/" },
-      { label: "Contact", href: "/" },
-    ],
-  },
-  {
-    title: "Carva GPS",
-    links: [
-      { label: "Live dashboard", href: "/fleet" },
-      { label: "Sign in", href: "/login" },
-      { label: "Status", href: "/" },
-      { label: "Security", href: "/" },
-    ],
-  },
-];
+import { CarvaWordmark } from "@/components/dashboard/carva-logo";
+import { useLandingCopy } from "@/components/landing/copy";
+import { CONTACT, whatsappHref } from "@/components/landing/contact";
 
+/** Public site footer. Every link goes somewhere real. */
 export function Footer() {
-  return (
-    <footer className="border-t bg-muted/30">
-      <div className="container grid grid-cols-2 gap-8 py-12 md:grid-cols-5">
-        <div className="col-span-2">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Truck className="h-[18px] w-[18px]" />
-            </span>
-            <span className="text-lg font-bold tracking-tight">Carva Fleet</span>
-          </Link>
-          <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            Real-time, AI-powered fleet management for modern operations teams.
-          </p>
-        </div>
+  const c = useLandingCopy();
+  const wa = whatsappHref();
+  const columns = [
+    {
+      title: c.footer.product,
+      links: [
+        { label: c.nav.features, href: "/#features" },
+        { label: c.nav.story, href: "/#story" },
+        { label: c.nav.demo, href: "/#demo" },
+      ],
+    },
+    {
+      title: c.footer.account,
+      links: [
+        { label: c.nav.demoCta, href: "/fleet" },
+        { label: c.nav.signin, href: "/login" },
+      ],
+    },
+  ];
 
-        {columns.map((c) => (
-          <div key={c.title}>
-            <h3 className="text-sm font-semibold">{c.title}</h3>
-            <ul className="mt-3 space-y-2">
-              {c.links.map((l) => (
-                <li key={l.label}>
-                  <Link
-                    href={l.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
+  return (
+    <footer className="relative border-t border-white/10 bg-[#080706]">
+      <div className="container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.2fr]">
+        <div>
+          <Link href="/" className="inline-flex items-center gap-2" aria-label="Carva Fleet">
+            <CarvaWordmark className="h-9 [&_img]:!opacity-100 [&_img]:!brightness-100" />
+            <span className="rounded-md border border-[hsl(var(--gold))]/35 bg-[hsl(var(--gold))]/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[hsl(var(--gold))]">
+              Fleet
+            </span>
+          </Link>
+          <p className="mt-4 max-w-xs text-sm text-[#f4efe6]/55">{c.footer.tagline}</p>
+        </div>
+        {columns.map((col) => (
+          <div key={col.title}>
+            <h3 className="eyebrow">{col.title}</h3>
+            <ul className="mt-4 space-y-2.5">
+              {col.links.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="text-sm text-[#f4efe6]/65 transition-colors hover:text-[#f4efe6]">
                     {l.label}
                   </Link>
                 </li>
@@ -64,12 +55,30 @@ export function Footer() {
             </ul>
           </div>
         ))}
-      </div>
-      <div className="border-t">
-        <div className="container flex flex-col items-center justify-between gap-2 py-6 text-sm text-muted-foreground sm:flex-row">
-          <p>© 2026 Carva GPS. All rights reserved.</p>
-          <p>Demo dashboard runs on mock data.</p>
+        <div>
+          <h3 className="eyebrow">{c.footer.contact}</h3>
+          <ul className="mt-4 space-y-2.5 text-sm">
+            <li>
+              <a href={`mailto:${CONTACT.email}`} className="inline-flex items-center gap-2 text-[#f4efe6]/65 hover:text-[#f4efe6]" dir="ltr">
+                <Mail className="h-4 w-4 text-[hsl(var(--gold))]" />
+                {CONTACT.email}
+              </a>
+            </li>
+            {wa && (
+              <li>
+                <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#f4efe6]/65 hover:text-[#f4efe6]">
+                  <MessageCircle className="h-4 w-4 text-[#25d366]" />
+                  WhatsApp
+                </a>
+              </li>
+            )}
+          </ul>
         </div>
+      </div>
+      <div className="border-t border-white/5">
+        <p className="container py-5 text-xs text-[#f4efe6]/40">
+          © {new Date().getFullYear()} Carva. {c.footer.rights}
+        </p>
       </div>
     </footer>
   );

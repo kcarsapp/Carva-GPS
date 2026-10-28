@@ -11,44 +11,244 @@
 @tailwind utilities;
 
 @layer base {
-  /* Theme tokens — scoped, so they don't collide with the app's :root vars
-     (e.g. the existing --border is a hex color; here it's an HSL triplet). */
+  /* Theme tokens - scoped, so they don't collide with the app's :root vars
+     (e.g. the existing --border is a hex color; here it's an HSL triplet).
+
+     Carva One identity: black, graphite and stone, with a champagne gold used
+     sparingly - active states, key figures, the primary action. The gold is
+     deliberately desaturated: the fleet's "idle" status is a saturated amber,
+     and a brassy gold would make "this is a Carva control" read as "this car
+     is idle". Neutrals carry a faint warm tint so the gold belongs to them.
+     Status colours (green / amber / red / sky / slate) stay semantic and are
+     never used for decoration. */
   .app-fleet {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 40 14% 97%;
+    --foreground: 30 12% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 30 12% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 30 12% 8%;
 
-    /* Brand: indigo */
-    --primary: 243 75% 59%;
+    /* Brand: deep gold on light (white text on it passes 4.5:1). */
+    --primary: 41 63% 33%;
     --primary-foreground: 0 0% 100%;
+    --brand-deep: 38 64% 24%;
+    --brand-bright: 42 62% 46%;
+    /* Gold used as a TEXT/ICON accent on light surfaces. */
+    --gold: 40 66% 32%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 36 14% 93%;
+    --secondary-foreground: 30 12% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 36 14% 94%;
+    --muted-foreground: 30 6% 38%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 36 16% 92%;
+    --accent-foreground: 30 12% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Errors are a true red - clearly apart from the gold brand. */
+    --destructive: 4 76% 48%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 243 75% 59%;
+    --border: 36 12% 87%;
+    --input: 36 12% 83%;
+    --ring: 41 63% 40%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
+
+    /* Liquid-glass surfaces: translucency, a hairline edge, and a top-lit
+       highlight. Used for anything floating over the live map. */
+    --glass: 40 20% 99% / 0.76;
+    --glass-strong: 40 20% 99% / 0.92;
+    --glass-border: 0 0% 100% / 0.7;
+    --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.75);
+    --glass-shadow: 0 1px 2px rgb(20 16 12 / 0.06), 0 12px 36px -12px rgb(20 16 12 / 0.28);
+
+    /* Elevation for solid cards. */
+    --shadow-card: 0 1px 2px rgb(20 16 12 / 0.05), 0 4px 16px -8px rgb(20 16 12 / 0.12);
+    --shadow-raised: 0 2px 4px rgb(20 16 12 / 0.06), 0 18px 40px -16px rgb(20 16 12 / 0.3);
+    --shadow-gold: 0 1px 2px rgb(0 0 0 / 0.12), 0 8px 22px -10px hsl(var(--primary) / 0.6);
+
+    /* Motion system. Durations scale with distance travelled; entrances
+       decelerate (ease-out), exits accelerate and are shorter, and panels that
+       the user summons get a damped spring - settled, never bouncy. */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in: cubic-bezier(0.55, 0, 0.75, 0.2);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    /* Fallback for the spring below in browsers without linear() easing. */
+    --ease-spring: cubic-bezier(0.25, 1.06, 0.5, 1);
+    --dur-instant: 90ms;
+    --dur-fast: 140ms;
+    --dur-base: 220ms;
+    --dur-slow: 340ms;
+    --dur-spring: 480ms;
+    --stagger-step: 38ms;
 
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* A damped spring (damping ratio 0.82, ω 17.5 rad/s), sampled over the
+     480ms --dur-spring: one ~1% overshoot, then settled. Professional, not
+     bouncy. Generated, not hand-tuned - regenerate rather than edit points. */
+  @supports (transition-timing-function: linear(0, 1)) {
+    .app-fleet {
+      --ease-spring: linear(
+        0, 0.0382, 0.1294, 0.2466, 0.3714, 0.492, 0.6016, 0.6968, 0.7763,
+        0.8407, 0.8914, 0.93, 0.9585, 0.9789, 0.9929, 1.0019, 1.0073, 1.0101,
+        1.0111, 1.0109, 1.01, 1.0088, 1.0074, 1.006, 1.0048, 1.0037, 1.0027,
+        1.002, 1
+      );
+    }
+  }
+
+  /* Night mode - activated by <html class="dark"> (see ThemeProvider).
+     Near-black graphite rather than pure #000: pure black makes the glass
+     look like holes cut in the page and crushes the shadow hierarchy. */
+  .dark .app-fleet {
+    --background: 30 8% 4.5%;
+    --foreground: 40 18% 94%;
+
+    --card: 30 6% 7.5%;
+    --card-foreground: 40 18% 94%;
+
+    --popover: 30 6% 8.5%;
+    --popover-foreground: 40 18% 94%;
+
+    /* Champagne gold with near-black text: ~9:1 contrast. */
+    --primary: 41 52% 62%;
+    --primary-foreground: 30 20% 6%;
+    --brand-deep: 38 44% 40%;
+    --brand-bright: 44 70% 76%;
+    --gold: 41 56% 66%;
+
+    --secondary: 30 6% 12%;
+    --secondary-foreground: 40 18% 94%;
+
+    --muted: 30 6% 10.5%;
+    --muted-foreground: 36 8% 62%;
+
+    --accent: 30 6% 13%;
+    --accent-foreground: 40 18% 94%;
+
+    --destructive: 4 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 34 7% 15%;
+    --input: 34 7% 19%;
+    --ring: 41 56% 62%;
+
+    --glass: 30 8% 7% / 0.7;
+    --glass-strong: 30 8% 7% / 0.9;
+    --glass-border: 40 30% 90% / 0.09;
+    --glass-highlight: inset 0 1px 0 rgb(255 248 230 / 0.07);
+    --glass-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 44px -14px rgb(0 0 0 / 0.7);
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px -10px rgb(0 0 0 / 0.55);
+    --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.45), 0 20px 44px -16px rgb(0 0 0 / 0.8);
+    --shadow-gold: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -10px hsl(var(--primary) / 0.45);
+  }
+
+
+  /* Interface accents (Settings -> Appearance). <html data-accent> is set
+     from a cookie by the root layout. Gold is the default above; the public
+     site (.brand-locked) always stays gold. Only brand tokens change - status
+     colours keep their meaning in every accent. */
+  html[data-accent="platinum"] .app-fleet:not(.brand-locked) {
+    --primary: 220 9% 34%;
+    --primary-foreground: 0 0% 100%;
+    --brand-deep: 220 10% 22%;
+    --brand-bright: 220 10% 52%;
+    --gold: 220 10% 30%;
+    --ring: 220 10% 40%;
+  }
+  html.dark[data-accent="platinum"] .app-fleet:not(.brand-locked) {
+    --primary: 220 12% 80%;
+    --primary-foreground: 220 20% 8%;
+    --brand-deep: 220 8% 52%;
+    --brand-bright: 220 20% 92%;
+    --gold: 220 14% 82%;
+    --ring: 220 12% 78%;
+  }
+  html[data-accent="sapphire"] .app-fleet:not(.brand-locked) {
+    --primary: 221 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    --brand-deep: 224 72% 30%;
+    --brand-bright: 217 85% 58%;
+    --gold: 221 70% 42%;
+    --ring: 221 70% 50%;
+  }
+  html.dark[data-accent="sapphire"] .app-fleet:not(.brand-locked) {
+    --primary: 217 85% 64%;
+    --primary-foreground: 222 40% 8%;
+    --brand-deep: 221 65% 40%;
+    --brand-bright: 213 95% 78%;
+    --gold: 215 90% 72%;
+    --ring: 217 85% 64%;
+  }
+  html[data-accent="emerald"] .app-fleet:not(.brand-locked) {
+    --primary: 160 70% 30%;
+    --primary-foreground: 0 0% 100%;
+    --brand-deep: 162 72% 20%;
+    --brand-bright: 158 60% 42%;
+    --gold: 160 70% 28%;
+    --ring: 160 70% 36%;
+  }
+  html.dark[data-accent="emerald"] .app-fleet:not(.brand-locked) {
+    --primary: 158 55% 52%;
+    --primary-foreground: 160 40% 6%;
+    --brand-deep: 160 60% 30%;
+    --brand-bright: 155 65% 70%;
+    --gold: 156 60% 60%;
+    --ring: 158 55% 52%;
+  }
+  html[data-accent="crimson"] .app-fleet:not(.brand-locked) {
+    --primary: 357 82% 39%;
+    --primary-foreground: 0 0% 100%;
+    --brand-deep: 356 82% 19%;
+    --brand-bright: 357 80% 50%;
+    --gold: 357 75% 40%;
+    --ring: 357 82% 45%;
+  }
+  html.dark[data-accent="crimson"] .app-fleet:not(.brand-locked) {
+    --primary: 357 76% 56%;
+    --primary-foreground: 0 0% 100%;
+    --brand-deep: 356 80% 30%;
+    --brand-bright: 357 85% 66%;
+    --gold: 357 85% 68%;
+    --ring: 357 76% 58%;
+  }
+  html[data-accent="violet"] .app-fleet:not(.brand-locked) {
+    --primary: 262 55% 46%;
+    --primary-foreground: 0 0% 100%;
+    --brand-deep: 264 55% 30%;
+    --brand-bright: 260 70% 62%;
+    --gold: 262 55% 44%;
+    --ring: 262 55% 52%;
+  }
+  html.dark[data-accent="violet"] .app-fleet:not(.brand-locked) {
+    --primary: 258 85% 76%;
+    --primary-foreground: 260 40% 8%;
+    --brand-deep: 262 50% 45%;
+    --brand-bright: 255 95% 86%;
+    --gold: 258 90% 80%;
+    --ring: 258 85% 74%;
+  }
+
+  /* Typeface: Inter for UI and live figures (true tabular digits), DM Sans
+     for headings and KPI values. Latin only - Arabic and Kurdish keep the
+     fonts set in globals.css, so this is limited to English. */
+  html[lang="en"] .app-fleet {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+  }
+  html[lang="en"] .app-fleet :where(h1, h2, h3, .font-display) {
+    font-family: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.015em;
   }
 
   /* Scoped preflight subset — only inside .app-fleet. */
@@ -105,10 +305,476 @@
     color: hsl(var(--muted-foreground));
     opacity: 1;
   }
+  /* One visible keyboard focus everywhere - a gold ring, never on mouse click. */
+  .app-fleet :where(a, button, [role="button"], [role="tab"], input, select, textarea, summary):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  .app-fleet ::selection {
+    background: hsl(var(--primary) / 0.28);
+  }
+}
+
+@layer components {
+  /* Floating glass. The blur is deliberately moderate: these panels sit on
+     top of a live WebGL map, and every extra pixel of blur radius is GPU work
+     on every frame the map pans. */
+  /* No `position` here on purpose: this class outranks Tailwind's
+     .absolute/.fixed (two classes vs one), so setting it would yank floating
+     map windows out of place. The ::before sheen only needs SOME positioned
+     ancestor - give static glass surfaces `relative` at the call site. */
+  .app-fleet .glass {
+    background-color: hsl(var(--glass));
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+  }
+  .app-fleet .glass-strong {
+    background-color: hsl(var(--glass-strong));
+  }
+  /* The reflection: a soft light falling across the top edge. */
+  .app-fleet .glass-sheen::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.03) 38%, transparent 60%);
+  }
+  .dark .app-fleet .glass-sheen::before {
+    background: linear-gradient(180deg, rgb(255 246 222 / 0.055) 0%, rgb(255 246 222 / 0.012) 40%, transparent 60%);
+  }
+  /* No backdrop-filter (older browsers, some Android WebViews): go opaque
+     rather than leaving text floating over map labels. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .app-fleet .glass {
+      background-color: hsl(var(--card));
+    }
+  }
+  /* Phones pay for blur on every pan; keep the material but halve its cost. */
+  @media (max-width: 640px) {
+    .app-fleet .glass {
+      -webkit-backdrop-filter: blur(10px) saturate(150%);
+      backdrop-filter: blur(10px) saturate(150%);
+    }
+  }
+
+  /* Solid surfaces. */
+  .app-fleet .surface {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Carva signature fill: champagne light falling onto deep gold. */
+  .app-fleet .brand-fill {
+    background-image:
+      linear-gradient(180deg, rgb(255 255 255 / 0.2), transparent 55%),
+      linear-gradient(135deg, hsl(var(--brand-bright)) 0%, hsl(var(--primary)) 48%, hsl(var(--brand-deep)) 100%);
+    color: hsl(var(--primary-foreground));
+  }
+  .app-fleet .brand-text {
+    background-image: linear-gradient(120deg, hsl(var(--brand-bright)), hsl(var(--primary)) 55%, hsl(var(--brand-deep)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* A hairline gold edge for the one element on screen that matters most. */
+  .app-fleet .gold-edge {
+    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.35), var(--shadow-gold);
+  }
+
+  /* Interactive lift for cards that open something. */
+  .app-fleet .lift {
+    transition:
+      transform var(--dur-base) var(--ease-out),
+      box-shadow var(--dur-base) var(--ease-out),
+      border-color var(--dur-base) var(--ease-out);
+  }
+  @media (hover: hover) {
+    .app-fleet .lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-raised);
+      border-color: hsl(var(--primary) / 0.3);
+    }
+  }
+
+  /* Tactile press for anything tappable that isn't a <Button>. Works on
+     touch too - hover is never the only feedback. */
+  .app-fleet .press {
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+  .app-fleet .press:active:not(:disabled) {
+    transform: scale(0.96);
+    transition-duration: var(--dur-instant);
+  }
+
+  /* Floating map control: a glass chip of fixed size. 40px on desktop, the
+     44px touch target on phones. */
+  .app-fleet .map-ctl {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    border-radius: 0.75rem;
+    color: hsl(var(--foreground) / 0.8);
+  }
+  @media (pointer: coarse) {
+    .app-fleet .map-ctl {
+      height: 2.75rem;
+      min-width: 2.75rem;
+    }
+  }
+  .app-fleet .map-ctl[aria-pressed="true"] {
+    background-color: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: var(--shadow-gold);
+  }
+  @media (hover: hover) {
+    .app-fleet .map-ctl:not([aria-pressed="true"]):not(:disabled):hover {
+      color: hsl(var(--foreground));
+      background-color: hsl(var(--glass-strong));
+    }
+  }
+
+  /* Numbers that update live must not jitter as digits change width. */
+  .app-fleet .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Small uppercase section label. */
+  .app-fleet .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Loading shimmer - calmer than animate-pulse, and it stops for
+     reduced-motion users (rule at the bottom of this file). */
+  .app-fleet .shimmer {
+    background-color: hsl(var(--muted));
+    background-image: linear-gradient(90deg, transparent 0%, hsl(var(--foreground) / 0.055) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: carva-shimmer 1.4s var(--ease-in-out) infinite;
+  }
+}
+
+@keyframes carva-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+/* ------------------------------- Motion ---------------------------------- */
+
+/* Fill modes matter here. Entrances use `backwards` (hold the first frame
+   during a stagger delay, then let go); NEVER `both`/`forwards`: a transform
+   animation that stays in effect turns the element into the containing block
+   for its absolute/fixed descendants - the 0px-tall page wrapper swallowed
+   the whole live map that way. Exits use `forwards` and are unmounted right
+   after they finish. */
+
+/* Panels sliding into place (details, sheets). */
+@keyframes carva-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.app-fleet .rise {
+  animation: carva-rise var(--dur-base) var(--ease-out) backwards;
+}
+
+/* A summoned panel: scales up from where it was asked for, on the spring.
+   Set the origin at the call site (origin-top-left etc.). */
+@keyframes carva-pop {
+  from { opacity: 0; transform: scale(0.94) translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes carva-pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.96) translateY(-2px); }
+}
+.app-fleet .pop {
+  animation:
+    carva-pop var(--dur-spring) var(--ease-spring) backwards,
+    carva-fade-in var(--dur-base) var(--ease-out) backwards;
+}
+.app-fleet .pop-out {
+  animation: carva-pop-out var(--dur-fast) var(--ease-in) forwards;
+}
+
+/* Bottom sheets (phones): rise from the edge on the spring, leave faster. */
+@keyframes carva-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes carva-sheet-out {
+  from { transform: none; }
+  to { transform: translateY(100%); }
+}
+@keyframes carva-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes carva-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.app-fleet .sheet-in { animation: carva-sheet-in var(--dur-spring) var(--ease-spring) backwards; }
+.app-fleet .sheet-out { animation: carva-sheet-out var(--dur-base) var(--ease-in) forwards; }
+.app-fleet .fade-in { animation: carva-fade-in var(--dur-base) var(--ease-out) backwards; }
+.app-fleet .fade-out { animation: carva-fade-out var(--dur-fast) var(--ease-in) forwards; }
+
+/* Side panels over the map slide in from their own edge (RTL-aware). */
+@keyframes carva-slide-start {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes carva-slide-end {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+.app-fleet .slide-from-start { animation: carva-slide-start var(--dur-slow) var(--ease-out) backwards; }
+.app-fleet .slide-from-end { animation: carva-slide-end var(--dur-slow) var(--ease-out) backwards; }
+[dir="rtl"] .app-fleet .slide-from-start { animation-name: carva-slide-end; }
+[dir="rtl"] .app-fleet .slide-from-end { animation-name: carva-slide-start; }
+
+/* Staggered entrance for lists and grids: children rise one after another.
+   Capped at 12 steps so a long list never makes anyone wait - row 13 onward
+   arrives with row 12. Pure CSS, so it costs nothing after it has played. */
+.app-fleet .stagger > * {
+  animation: carva-rise var(--dur-slow) var(--ease-out) backwards;
+}
+.app-fleet .stagger > :nth-child(2) { animation-delay: calc(var(--stagger-step) * 1); }
+.app-fleet .stagger > :nth-child(3) { animation-delay: calc(var(--stagger-step) * 2); }
+.app-fleet .stagger > :nth-child(4) { animation-delay: calc(var(--stagger-step) * 3); }
+.app-fleet .stagger > :nth-child(5) { animation-delay: calc(var(--stagger-step) * 4); }
+.app-fleet .stagger > :nth-child(6) { animation-delay: calc(var(--stagger-step) * 5); }
+.app-fleet .stagger > :nth-child(7) { animation-delay: calc(var(--stagger-step) * 6); }
+.app-fleet .stagger > :nth-child(8) { animation-delay: calc(var(--stagger-step) * 7); }
+.app-fleet .stagger > :nth-child(9) { animation-delay: calc(var(--stagger-step) * 8); }
+.app-fleet .stagger > :nth-child(10) { animation-delay: calc(var(--stagger-step) * 9); }
+.app-fleet .stagger > :nth-child(11) { animation-delay: calc(var(--stagger-step) * 10); }
+.app-fleet .stagger > :nth-child(n + 12) { animation-delay: calc(var(--stagger-step) * 11); }
+
+/* Respect the OS setting: no movement, only instant state changes. */
+@media (prefers-reduced-motion: reduce) {
+  .app-fleet *,
+  .app-fleet *::before,
+  .app-fleet *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Subtle dotted-grid backdrop used by hero + live demo widget. */
 .app-fleet .bg-grid {
   background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+/* A restrained depth treatment for the public landing hero. */
+.app-fleet .hero-surface {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(circle at 78% 18%, hsl(var(--primary) / 0.12), transparent 25rem),
+    radial-gradient(hsl(var(--border)) 1px, transparent 1px);
+  background-size: auto, 24px 24px;
+}
+
+.app-fleet .hero-preview::before {
+  content: "";
+  position: absolute;
+  inset: 12% -8% -12%;
+  z-index: -1;
+  border-radius: 999px;
+  background: hsl(var(--primary) / 0.12);
+  filter: blur(52px);
+}
+
+/* Page-enter transition for fleet routes (see app/fleet/template.tsx): a
+   short fade with a few pixels of rise - fast enough to never feel like a
+   wait, present enough that the swap reads as intentional. */
+.page-fade {
+  animation: page-fade var(--dur-slow, 0.3s) var(--ease-out, ease-out) backwards;
+}
+@keyframes page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Full-bleed canvas pages: opacity only (see app/fleet/template.tsx). */
+.page-fade-flat {
+  animation: carva-fade-in var(--dur-slow, 0.3s) var(--ease-out, ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-fade,
+  .page-fade-flat {
+    animation: none;
+  }
+}
+
+/* --- Sign-in brand panel ---------------------------------------------------
+   The gold route draws itself once; the destination breathes slowly. Both are
+   decorative and stop entirely for reduced-motion users. */
+.app-fleet .login-route {
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: login-draw 2.2s var(--ease-in-out) 0.3s forwards;
+}
+@keyframes login-draw {
+  to { stroke-dashoffset: 0; }
+}
+.app-fleet .login-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: login-pulse 3.2s var(--ease-in-out) 2.4s infinite;
+}
+@keyframes login-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.6); opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-fleet .login-route { stroke-dashoffset: 0; animation: none; }
+  .app-fleet .login-pulse { animation: none; }
+}
+
+/* --- MapLibre's own zoom buttons, in the same glass as our controls -------- */
+.app-fleet .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
+  margin: 0 0.75rem 1.75rem 0;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--glass));
+  border: 1px solid hsl(var(--glass-border));
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+.app-fleet .maplibregl-ctrl-group button {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: transparent;
+}
+.app-fleet .maplibregl-ctrl-group button + button {
+  border-top: 1px solid hsl(var(--border));
+}
+.app-fleet .maplibregl-ctrl-group button:hover {
+  background-color: hsl(var(--accent) / 0.7);
+}
+/* The stock glyphs are dark SVG backgrounds - lift them on dark glass. */
+.dark .app-fleet .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(0.92) sepia(0.15);
+}
+
+/* --- Live map markers -------------------------------------------------------
+   Markers are plain DOM owned by MapLibre (which sets their transform), so the
+   visual lives on a child: `.vm` is the badge, `.vm-ring` the selection halo. */
+.app-fleet .vm {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  color: var(--vm-color);
+  background: radial-gradient(circle at 50% 30%, #2a2622 0%, #12100e 75%);
+  border: 2px solid var(--vm-color);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 6px 14px -4px rgb(0 0 0 / 0.55);
+  cursor: pointer;
+  transition:
+    transform var(--dur-slow) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .app-fleet .vm:hover { transform: scale(1.08); }
+}
+.app-fleet .vm[data-selected="true"] {
+  transform: scale(1.22);
+  border-color: hsl(var(--primary));
+  box-shadow:
+    0 0 0 4px hsl(var(--primary) / 0.28),
+    0 0 22px 2px hsl(var(--primary) / 0.35),
+    0 8px 18px -4px rgb(0 0 0 / 0.6);
+}
+.app-fleet .vm-offline { opacity: 0.72; }
+
+/* Realistic vehicle styles (lib/car-icons.ts): a top-down car painted in the
+   status colour, on a soft glow of the same colour, rotated to its course. */
+.app-fleet .vm.vm-car {
+  width: 46px;
+  height: 46px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.app-fleet .vm-car .vm-halo {
+  position: absolute;
+  inset: 7px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--vm-color) 42%, transparent) 0%, transparent 70%);
+  transition: inset 0.3s ease, box-shadow 0.3s ease;
+}
+.app-fleet .vm-car .vm-body {
+  position: relative;
+  display: block;
+  width: 21px;
+  height: 42px;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.55));
+}
+.app-fleet .vm-style-arrow .vm-body { width: 30px; height: 30px; }
+.app-fleet .vm-car[data-selected="true"] {
+  transform: scale(1.18);
+  border: 0;
+  box-shadow: none;
+}
+.app-fleet .vm-car[data-selected="true"] .vm-halo {
+  inset: 1px;
+  box-shadow: 0 0 0 2px hsl(var(--primary)), 0 0 20px 2px hsl(var(--primary) / 0.55);
+}
+.app-fleet .vm-car.vm-offline .vm-body { filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.55)) saturate(0.4); }
+
+/* --- History replay: map markers ------------------------------------------
+   Markers are plain DOM, so they are styled here. The halo breathes while the
+   replay marker exists; labels on stops hide when the map is zoomed far out. */
+.app-fleet .rt-halo {
+  position: absolute;
+  inset: -10px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.25;
+  animation: rt-ping 1.9s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes rt-ping {
+  0% { transform: scale(0.55); opacity: 0.45; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+/* Parking pins fade away as the map zooms out (--rt-pin is set from the zoom
+   level by the history map); their duration labels go first. */
+.app-fleet .rt-fade { opacity: var(--rt-pin, 1); transition: opacity 0.2s ease; }
+.app-fleet .rt-lowzoom .rt-label { opacity: 0; }
+.app-fleet .rt-farzoom .rt-fade { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .app-fleet .rt-halo { animation: none; }
 }

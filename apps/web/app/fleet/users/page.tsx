@@ -1,5 +1,6 @@
 "use client";
 
+import { ShieldCheck as PageIcon } from "lucide-react";
 import * as React from "react";
 import { ShieldCheck } from "lucide-react";
 
@@ -14,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { useI18n } from "@/lib/i18n-provider";
 import { useSession } from "@/lib/live-data";
 
 interface TraccarUserRow {
@@ -39,6 +41,7 @@ const ROLE_BADGE: Record<Role, { label: string; variant: "default" | "info" | "s
 };
 
 export default function UsersPage() {
+  const { t } = useI18n();
   const session = useSession();
   const [users, setUsers] = React.useState<TraccarUserRow[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -90,8 +93,10 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Users"
-        description="All accounts on this workspace, by role."
+        eyebrow={t("fleet.nav.group.manage")}
+        icon={PageIcon}
+        title={t("fleet.nav.users")}
+        description={t("users.desc")}
       />
 
       {error && (

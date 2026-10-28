@@ -19,7 +19,9 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+        // The thumb must travel toward the inline-end edge, which is leftward
+        // in Arabic/Kurdish — hence the [dir=rtl] ancestor variant.
+        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0 [[dir=rtl]_&]:data-[state=checked]:-translate-x-5",
       )}
     />
   </SwitchPrimitives.Root>

@@ -19,9 +19,12 @@ import { useI18n } from "@/lib/i18n-provider";
  * navigation moves into the command bar on this page only.
  */
 export default function FleetOverviewPage() {
-  const { vehicles, authed, error, user } = useLiveFleet();
+  const { vehicles, authed, error, user, transport } = useLiveFleet();
   const { t } = useI18n();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  // Separate from the selection: only a click on the map marker itself opens
+  // the anchored card, so picking a roster row does not double up.
+  const [calloutId, setCalloutId] = React.useState<string | null>(null);
   const [alertsOpen, setAlertsOpen] = React.useState(false);
 
   // Deep link: /fleet?device=<traccarDeviceId> pre-selects a vehicle (used by
@@ -51,31 +54,44 @@ export default function FleetOverviewPage() {
   const alerts = overviewAlerts(vehicles, authed, t);
 
   return (
-    <div className="fixed inset-0 z-40 overflow-hidden bg-muted">
+    // Fills the shell's canvas frame — the sidebar stays visible beside it, so
+    // navigation no longer jumps between a rail here and a floating bar there.
+    <div className="absolute inset-0 overflow-hidden bg-muted">
       <FleetMap
         vehicles={vehicles}
         selectedId={selectedId}
+        calloutId={calloutId}
         onSelect={setSelectedId}
-        onClose={() => setSelectedId(null)}
+        onMarkerSelect={(id) => {
+          setSelectedId(id);
+          setCalloutId(id);
+        }}
+        onClose={() => setCalloutId(null)}
         className="h-full w-full rounded-none border-0"
         controlsClassName="end-3 top-[4.75rem]"
-        detailClassName="bottom-3 left-1/2 -translate-x-1/2"
+        showDetail
+        anchorDetail
         canControl={authed}
+        allowDirections={authed}
       />
 
       <CommandBar
         authed={authed}
         user={user}
+        metrics={metrics}
         alertCount={alerts.length}
         alertsOpen={alertsOpen}
         onToggleAlerts={() => setAlertsOpen((v) => !v)}
+        transport={transport}
       />
 
       <RosterWindow
         vehicles={vehicles}
-        metrics={metrics}
         selectedId={selectedId}
-        onSelect={setSelectedId}
+        onSelect={(id) =>
+          setSelectedId((prev) => (prev === id ? null : id))
+        }
+        canControl={authed}
       />
 
       {alertsOpen && (

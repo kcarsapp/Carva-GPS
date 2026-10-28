@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE, traccarBase, traccarCookieHeader } from '@/lib/auth';
+import {
+  SESSION_COOKIE,
+  SOCKET_PATH,
+  TRACCAR_COOKIE,
+  traccarBase,
+  traccarCookieHeader,
+} from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,5 +25,8 @@ export async function POST(req: NextRequest) {
   }
   const res = NextResponse.json({ ok: true });
   res.cookies.delete(SESSION_COOKIE);
+  // A cookie is only cleared by matching its path, so the socket cookie has to
+  // be deleted on the path it was set on, not the default '/'.
+  res.cookies.set(TRACCAR_COOKIE, '', { path: SOCKET_PATH, maxAge: 0 });
   return res;
 }

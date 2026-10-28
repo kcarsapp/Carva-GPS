@@ -41,6 +41,12 @@ export interface TraccarDevice {
 export interface TraccarPosition {
   id: number;
   deviceId: number;
+  /** Decoder that produced this fix, e.g. "jt808", "gt06". */
+  protocol?: string;
+  /** When Traccar received it (differs from fixTime when buffered). */
+  serverTime?: string;
+  /** false when the receiver had no satellite fix. */
+  valid?: boolean;
   deviceTime: string;
   fixTime: string;
   latitude: number;

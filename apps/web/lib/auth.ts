@@ -67,3 +67,35 @@ export function sessionCookieOptions() {
     maxAge: 60 * 60 * 24 * 7, // 7 days
   };
 }
+
+/* ---------------------------- Socket session ----------------------------- */
+//
+// Live push needs a cookie the browser can send on a WebSocket handshake.
+//
+// `new WebSocket(url)` accepts no headers, and a Next route handler cannot
+// proxy an HTTP upgrade, so the socket is served straight from nginx to
+// Traccar's /api/socket. That means the handshake has to carry Traccar's OWN
+// cookie name — our `carva_session` means nothing upstream.
+//
+// It is the same secret we already hold, exposed as narrowly as possible:
+// scoped to the socket path so it rides on no other request, httpOnly so no
+// script can read it, and SameSite=Lax so a cross-site page cannot open an
+// authenticated stream (a WS handshake is not a top-level navigation, so Lax
+// withholds the cookie).
+
+/** The cookie name Traccar itself looks for on the socket handshake. */
+export const TRACCAR_COOKIE = 'JSESSIONID';
+
+/** The only path that ever needs the upstream cookie. */
+export const SOCKET_PATH = '/traccar-socket';
+
+/** Options for the upstream-named cookie that authenticates the live socket. */
+export function socketCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    path: SOCKET_PATH,
+    maxAge: 60 * 60 * 24 * 7, // matches the session cookie
+  };
+}

@@ -20,9 +20,20 @@ async function proxy(
   }
 
   const target = `${traccarBase()}/api/${path.join('/')}${req.nextUrl.search}`;
+  // Forward the caller's Accept ONLY when it names a concrete type, so a report
+  // export can ask for XLSX/GPX/KML. Everything else — a missing header, a
+  // browser's `*/*` from plain fetch(), or a navigation's text/html — must fall
+  // back to JSON: Traccar's report endpoints answer `*/*` with an XLSX file,
+  // which would reach the page as binary ("PK…") and fail to parse as JSON.
+  const requestedAccept = req.headers.get('accept');
+  const wantsSpecificType =
+    !!requestedAccept &&
+    !requestedAccept.includes('*/*') &&
+    !requestedAccept.includes('text/html');
+  const accept = wantsSpecificType ? requestedAccept : 'application/json';
   const headers: Record<string, string> = {
     Cookie: traccarCookieHeader(jsessionid),
-    Accept: 'application/json',
+    Accept: accept,
   };
 
   let body: string | undefined;
@@ -40,11 +51,17 @@ async function proxy(
     if (res.status === 204 || res.status === 205 || res.status === 304) {
       return new NextResponse(null, { status: res.status });
     }
-    const text = await res.text();
-    return new NextResponse(text, {
-      status: res.status,
-      headers: { 'Content-Type': res.headers.get('content-type') ?? 'application/json' },
-    });
+    const contentType = res.headers.get('content-type') ?? 'application/json';
+    // Report exports (XLSX) are binary — decoding them as text would corrupt
+    // the file, so anything that isn't textual is passed through as bytes.
+    const isTextual = /json|text\/|xml|javascript/i.test(contentType);
+    const payload = isTextual ? await res.text() : await res.arrayBuffer();
+
+    const passthrough: Record<string, string> = { 'Content-Type': contentType };
+    const disposition = res.headers.get('content-disposition');
+    if (disposition) passthrough['Content-Disposition'] = disposition;
+
+    return new NextResponse(payload, { status: res.status, headers: passthrough });
   } catch (e) {
     return NextResponse.json(
       { error: 'traccar_proxy_failed', message: (e as Error).message },

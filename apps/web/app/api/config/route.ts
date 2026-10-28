@@ -11,12 +11,15 @@ export function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   }
   // Trackers report to the Traccar host itself (on a protocol port, not the
-  // web port) — hand the hostname to the SMS-setup card as a default.
-  let trackerHost = '';
-  try {
-    trackerHost = new URL(traccarBase()).hostname;
-  } catch {
-    /* unset/invalid TRACCAR_URL — the field just starts empty */
+  // web port). TRACKER_HOST overrides for deployments where the web app talks
+  // to Traccar over localhost but trackers need the public address.
+  let trackerHost = process.env.TRACKER_HOST ?? '';
+  if (!trackerHost) {
+    try {
+      trackerHost = new URL(traccarBase()).hostname;
+    } catch {
+      /* unset/invalid TRACCAR_URL — the field just starts empty */
+    }
   }
   return NextResponse.json({ trackerHost });
 }

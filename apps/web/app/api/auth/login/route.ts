@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { TraccarUser } from '@carva/shared';
 import {
   SESSION_COOKIE,
+  TRACCAR_COOKIE,
   accountTypeOf,
   deriveRole,
   parseJsessionId,
   sessionCookieOptions,
+  socketCookieOptions,
   traccarBase,
 } from '@/lib/auth';
 
@@ -68,5 +70,8 @@ export async function POST(req: NextRequest) {
     role: deriveRole(user),
   });
   res.cookies.set(SESSION_COOKIE, jsessionid, sessionCookieOptions());
+  // Same secret under Traccar's own cookie name, scoped to the socket path, so
+  // the browser can authenticate the live-push handshake nginx serves there.
+  res.cookies.set(TRACCAR_COOKIE, jsessionid, socketCookieOptions());
   return res;
 }

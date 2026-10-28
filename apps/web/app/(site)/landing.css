@@ -1,0 +1,445 @@
+/*
+ * Homepage ("night drive") styles. Loaded by app/(site)/page.tsx only.
+ * Motion itself lives in components/landing/* (GSAP); this file holds the
+ * static look, initial (pre-JS) states, and a few cheap CSS loops that all
+ * stop under prefers-reduced-motion.
+ */
+
+.landing {
+  --ink: #f4efe6;
+  --night: #0b0a09;
+  --gold-1: #8a6a1f;
+  --gold-2: #d1b06b;
+  --gold-3: #f3dfae;
+  background:
+    radial-gradient(1200px 700px at 85% -10%, rgba(209, 176, 107, 0.09), transparent 60%),
+    var(--night);
+  color: var(--ink);
+  overflow-x: clip;
+}
+
+/* Section seams: a faint gold hairline instead of a hard border. */
+.landing > section + section::before {
+  content: "";
+  position: absolute;
+  inset-inline: 10%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(209, 176, 107, 0.22), transparent);
+}
+
+/* ------------------------------- navbar ---------------------------------- */
+.app-fleet .ln-header { border-bottom: 1px solid transparent; }
+/* Solid, not frosted: the bar sits over the animated 3D city and story, and
+   a backdrop blur there is recomputed on every scroll frame (measured: ~20%
+   of the frame budget). On a near-black page the blur was barely visible. */
+.app-fleet .ln-header-solid {
+  background: rgba(11, 10, 9, 0.94);
+  border-bottom-color: rgba(244, 239, 230, 0.08);
+}
+.app-fleet .ln-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold-1, #8a6a1f), #d1b06b, #f3dfae);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  box-shadow: 0 0 12px rgba(209, 176, 107, 0.55);
+}
+[dir="rtl"] .app-fleet .ln-progress { transform-origin: 100% 50%; }
+.app-fleet .ln-link { position: relative; transition: color 0.2s ease; }
+.app-fleet .ln-link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -6px;
+  height: 1px;
+  background: #d1b06b;
+  transform: scaleX(0);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.app-fleet .ln-link:hover::after { transform: scaleX(1); }
+
+/* -------------------------------- hero ----------------------------------- */
+.lh-hero { min-height: 100svh; }
+.lh-stage { perspective: 1800px; perspective-origin: 60% 40%; }
+.lh-plane {
+  position: absolute;
+  left: -45%;
+  top: 30%;
+  width: 190vw;
+  aspect-ratio: 3 / 2;
+  opacity: 0; /* revealed by the intro timeline */
+  /* Scrubbed every scroll frame: keep it a compositor layer so tilt/zoom
+     never re-rasterise the city. (No CSS mask - the SVG vignette fades the
+     edges; a mask on a 3D layer re-ran every frame.) */
+  will-change: transform;
+}
+@media (min-width: 1024px) {
+  .lh-plane { left: 28%; top: 4%; width: 92vw; }
+  [dir="rtl"] .lh-plane { left: auto; right: 28%; }
+}
+.lh-veil {
+  background:
+    linear-gradient(90deg, rgba(11, 10, 9, 0.96) 0%, rgba(11, 10, 9, 0.75) 38%, transparent 70%),
+    linear-gradient(0deg, #0b0a09 0%, transparent 22%);
+}
+[dir="rtl"] .lh-veil {
+  background:
+    linear-gradient(270deg, rgba(11, 10, 9, 0.96) 0%, rgba(11, 10, 9, 0.75) 38%, transparent 70%),
+    linear-gradient(0deg, #0b0a09 0%, transparent 22%);
+}
+/* Phones: text on a dark top half, the city glowing in the open space
+   below the buttons. */
+@media (max-width: 1023.98px) {
+  .lh-plane { top: 46%; }
+  .lh-veil,
+  [dir="rtl"] .lh-veil {
+    background: linear-gradient(
+      180deg,
+      rgba(11, 10, 9, 0.92) 0%,
+      rgba(11, 10, 9, 0.82) 48%,
+      rgba(11, 10, 9, 0.15) 72%,
+      rgba(11, 10, 9, 0.35) 90%,
+      #0b0a09 100%
+    );
+  }
+}
+.lh-gold {
+  background: linear-gradient(110deg, #f3dfae 0%, #d1b06b 40%, #8a6a1f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding-bottom: 0.08em; /* descenders inside the mask */
+}
+.app-fleet .lh-ghost {
+  border: 1px solid rgba(244, 239, 230, 0.14);
+  background: rgba(244, 239, 230, 0.03);
+  color: #f4efe6;
+}
+.app-fleet .lh-ghost:hover { background: rgba(244, 239, 230, 0.07); border-color: rgba(209, 176, 107, 0.4); }
+.lh-hud { opacity: 1; }
+.lh-mouse {
+  position: relative;
+  width: 22px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(244, 239, 230, 0.35);
+}
+.lh-mouse::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  width: 3px;
+  height: 7px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: #d1b06b;
+  animation: lh-wheel 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes lh-wheel {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+/* ------------------------------ facts band ------------------------------- */
+.lst { padding: 0.5rem 0 3.5rem; }
+.lst-grid {
+  border: 1px solid rgba(209, 176, 107, 0.22);
+  background:
+    linear-gradient(180deg, rgba(209, 176, 107, 0.06), rgba(209, 176, 107, 0.015)),
+    rgba(18, 16, 14, 0.9);
+  box-shadow: 0 30px 80px -40px rgba(209, 176, 107, 0.35), inset 0 1px 0 rgba(255, 246, 222, 0.06);
+}
+.lst-cell + .lst-cell { border-inline-start: 1px solid rgba(244, 239, 230, 0.07); }
+@media (max-width: 1023.98px) {
+  /* 2 x 2 on phones: a row divider instead of the third column rule. */
+  .lst-cell:nth-child(3) { border-inline-start: 0; }
+  .lst-cell:nth-child(n + 3) { border-top: 1px solid rgba(244, 239, 230, 0.07); }
+}
+.lst-corner {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  width: 10px;
+  height: 10px;
+  border-top: 1.5px solid rgba(209, 176, 107, 0.75);
+  border-inline-start: 1.5px solid rgba(209, 176, 107, 0.75);
+}
+.lst-scan {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 25%;
+  pointer-events: none;
+  transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent, rgba(243, 223, 174, 0.12), transparent);
+}
+
+/* ----------------------------- night city -------------------------------- */
+.night-city .nc-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Roads + lights: rasterised once, then only composited. */
+.night-city .nc-static { will-change: transform; }
+
+/* Panels that float over the ANIMATED map are solid, not frosted: a backdrop
+   blur must be recomputed every frame the map behind it changes. */
+.landing .glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background-color: rgba(20, 18, 15, 0.92);
+}
+.night-city .nc-light {
+  fill: #f3dfae;
+  opacity: 0;
+  animation: nc-on 0.9s ease-out forwards;
+}
+@keyframes nc-on { to { opacity: 0.55; } }
+.night-city .nc-base-fill { fill: #d1b06b; fill-opacity: 0.07; }
+.night-city .nc-base-ring { fill: none; stroke: #d1b06b; stroke-width: 2; stroke-dasharray: 6 7; }
+.night-city .nc-zone-shape {
+  fill: #e4b363;
+  fill-opacity: 0;
+  stroke: #e4b363;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.night-city .nc-label {
+  font: 600 14px/1 var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: rgba(244, 239, 230, 0.8);
+  paint-order: stroke;
+  stroke: #0b0a09;
+  stroke-width: 5px;
+}
+.night-city .nc-zone-label { fill: #fca5a5; }
+.night-city .nc-base-label { fill: #e8cf94; }
+.night-city .nc-you-label { fill: #93c5fd; }
+.night-city .nc-you-ripple {
+  fill: #0ea5e9;
+  fill-opacity: 0.25;
+  /* Still: an endless ripple repainted the live layer forever. */
+}
+.night-city .nc-car-halo { fill: #d1b06b; fill-opacity: 0.18; }
+
+/* -------------------------------- story ---------------------------------- */
+.ls-stage { perspective: 1700px; }
+/* Shifted right and down so the whole drive (lot at the far west, zone at
+   the top of the ring) sits in the open part of the screen, clear of the
+   navbar and the chapter text. */
+.ls-plane { position: absolute; inset: 4% -14% -14% -4%; }
+.ls-tilt {
+  width: 100%;
+  height: 100%;
+  transform: rotateX(34deg) rotateZ(-5deg) scale(1.08);
+  transform-origin: 50% 60%;
+}
+@media (max-width: 1023.98px) {
+  .ls-plane { inset: -10% -40%; }
+  .ls-tilt { transform: rotateX(28deg) rotateZ(-4deg) scale(1.05); }
+}
+.ls-veil {
+  background:
+    linear-gradient(180deg, #0b0a09 0%, transparent 16%, transparent 84%, #0b0a09 100%);
+}
+@media (min-width: 1024px) {
+  .ls-veil {
+    background:
+      linear-gradient(90deg, rgba(11, 10, 9, 0.95) 0%, rgba(11, 10, 9, 0.7) 34%, transparent 58%),
+      linear-gradient(180deg, #0b0a09 0%, transparent 14%, transparent 86%, #0b0a09 100%);
+  }
+  [dir="rtl"] .ls-veil {
+    background:
+      linear-gradient(270deg, rgba(11, 10, 9, 0.95) 0%, rgba(11, 10, 9, 0.7) 34%, transparent 58%),
+      linear-gradient(180deg, #0b0a09 0%, transparent 14%, transparent 86%, #0b0a09 100%);
+  }
+}
+/* Before JS: only the first chapter, overlays hidden (no overlapping flash). */
+@media (min-width: 1024px) {
+  .ls-chapters .ls-chapter:not(:first-child) { opacity: 0; visibility: hidden; }
+}
+.ls-phone, .ls-gauge, .ls-routecard { opacity: 0; visibility: hidden; }
+.ls-k {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(209, 176, 107, 0.45);
+  background: rgba(209, 176, 107, 0.08);
+  color: #e8cf94;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.ls-phone { perspective: 900px; }
+.ls-phone-body {
+  position: relative;
+  height: 14.5rem;
+  border-radius: 2.2rem 2.2rem 1.2rem 1.2rem;
+  padding: 2.6rem 0.75rem 0.9rem;
+  background:
+    radial-gradient(120% 80% at 70% 0%, rgba(209, 176, 107, 0.28), transparent 60%),
+    linear-gradient(160deg, #1c1813, #0d0b09);
+  border: 1px solid rgba(244, 239, 230, 0.14);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.ls-phone-notch {
+  position: absolute;
+  top: 0.7rem;
+  left: 50%;
+  width: 5.2rem;
+  height: 1.3rem;
+  margin-left: -2.6rem;
+  border-radius: 999px;
+  background: #000;
+}
+.ls-phone-time {
+  text-align: center;
+  font: 600 2.4rem/1 var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  color: rgba(244, 239, 230, 0.85);
+  margin-bottom: 0.9rem;
+}
+.ls-mail {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.65rem;
+  border-radius: 1rem;
+  background: rgba(30, 27, 23, 0.82);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.45);
+}
+.ls-mail-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.6rem;
+  background: linear-gradient(140deg, #f3dfae, #d1b06b 50%, #8a6a1f);
+  color: #12100e;
+}
+.ls-rail-seg {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(244, 239, 230, 0.12);
+}
+.ls-rail-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #8a6a1f, #d1b06b, #f3dfae);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+[dir="rtl"] .ls-rail-fill { transform-origin: 100% 50%; }
+/* Reduced motion: chapters as a list at every width. */
+.ls-static .ls-chapters, .ls-static .ls-rail { display: none !important; }
+.ls-static .ls-mlist { display: grid !important; }
+
+/* ------------------------------- features -------------------------------- */
+.app-fleet .lf-card {
+  background: linear-gradient(180deg, rgba(244, 239, 230, 0.045), rgba(244, 239, 230, 0.012));
+  border: 1px solid rgba(244, 239, 230, 0.08);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  --mx: 50%;
+  --my: 0%;
+}
+/* 3D (for the icon lift) only while hovered - an always-on 3D context is
+   re-sorted by the compositor on every scroll frame. */
+.app-fleet .lf-card:hover {
+  transform-style: preserve-3d;
+  border-color: rgba(209, 176, 107, 0.35);
+  box-shadow: 0 30px 70px -35px rgba(209, 176, 107, 0.4);
+}
+.lf-spot {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx) var(--my), rgba(209, 176, 107, 0.14), transparent 45%);
+  transition: opacity 0.35s ease;
+}
+.lf-card:hover .lf-spot { opacity: 1; }
+.lf-scan {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 45%;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(243, 223, 174, 0.16), transparent);
+}
+.lf-icon {
+  color: #e8cf94;
+  background: rgba(209, 176, 107, 0.08);
+  border: 1px solid rgba(209, 176, 107, 0.25);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+}
+.lf-card:hover .lf-icon { transform: translateZ(30px) scale(1.06); box-shadow: 0 0 24px rgba(209, 176, 107, 0.35); }
+
+/* -------------------------------- demo ----------------------------------- */
+.ld-corner {
+  position: absolute;
+  z-index: 5;
+  width: 18px;
+  height: 18px;
+  border-top: 1.5px solid rgba(209, 176, 107, 0.7);
+  border-left: 1.5px solid rgba(209, 176, 107, 0.7);
+  pointer-events: none;
+}
+.ld-frame .maplibregl-ctrl-attrib { background: rgba(11, 10, 9, 0.6) !important; }
+.ld-frame .maplibregl-ctrl-attrib a { color: rgba(244, 239, 230, 0.6) !important; }
+
+/* -------------------------------- steps ---------------------------------- */
+.lsx-node {
+  color: rgba(244, 239, 230, 0.45);
+  background: #12100e;
+  border: 1px solid rgba(244, 239, 230, 0.12);
+  transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, background-color 0.4s ease;
+}
+.lsx-step.is-lit .lsx-node {
+  color: #f3dfae;
+  background: rgba(209, 176, 107, 0.1);
+  border-color: rgba(209, 176, 107, 0.7);
+  box-shadow: 0 0 0 6px rgba(209, 176, 107, 0.08), 0 0 30px rgba(209, 176, 107, 0.35);
+}
+.lsx-num {
+  position: absolute;
+  top: -8px;
+  inset-inline-end: -8px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #12100e;
+  background: #d1b06b;
+}
+
+/* ------------------------------ final CTA -------------------------------- */
+.lc-glow {
+  background:
+    radial-gradient(700px 380px at 50% 20%, rgba(209, 176, 107, 0.16), transparent 70%),
+    radial-gradient(1000px 500px at 50% 120%, rgba(209, 176, 107, 0.08), transparent 70%);
+}
+.lc-pin {
+  background: radial-gradient(circle at 35% 30%, #f3dfae, #d1b06b 45%, #8a6a1f);
+  box-shadow: 0 0 0 8px rgba(209, 176, 107, 0.12), 0 0 60px rgba(209, 176, 107, 0.55);
+}
+
+/* ---------------------------- reduced motion ----------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .lh-mouse::after,
+  .night-city .nc-light,
+  .night-city .nc-you-ripple { animation: none !important; }
+  .night-city .nc-light { opacity: 0.55; }
+  .lh-plane { opacity: 1; }
+}

@@ -22,6 +22,7 @@ export const vehicleStatusDisplay: Record<VehicleStatus, StatusDisplay> = {
     variant: "destructive",
     dot: "bg-red-500",
   },
+  unknown: { label: "No Signal", variant: "info", dot: "bg-sky-400" },
   offline: { label: "Offline", variant: "muted", dot: "bg-slate-400" },
 };
 
@@ -45,9 +46,12 @@ export function energyColor(level: number): string {
   return "bg-emerald-500";
 }
 
-export function timeAgo(iso: string): string {
+export function timeAgo(iso: string | null | undefined): string {
+  // No timestamp at all — the caller decides how to word "never reported".
+  if (!iso) return "";
   const then = new Date(iso).getTime();
-  const now = new Date("2026-06-28T09:42:00Z").getTime();
+  if (!Number.isFinite(then)) return "";
+  const now = Date.now();
   const mins = Math.max(0, Math.round((now - then) / 60000));
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;

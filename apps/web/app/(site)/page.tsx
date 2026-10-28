@@ -1,64 +1,37 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
 
-import { Button } from "@/components/ui/button";
-import { Hero } from "@/components/marketing/hero";
-import { Features } from "@/components/marketing/features";
-import { LiveDemo } from "@/components/marketing/live-demo";
-import { Pricing } from "@/components/marketing/pricing";
-import { CtaBanner } from "@/components/marketing/cta";
+import { LandingHero } from "@/components/landing/hero";
+import { LandingStats } from "@/components/landing/stats";
+import { LandingStory } from "@/components/landing/story";
+import { LandingFeatures } from "@/components/landing/features";
+import { LandingDemoMap } from "@/components/landing/demo-map";
+import { LandingSteps } from "@/components/landing/steps";
+import { LandingCta } from "@/components/landing/final-cta";
+import "./landing.css";
 
+export const metadata: Metadata = {
+  title: "Carva Fleet — GPS tracking for car rental companies",
+  description:
+    "See every rental car on a live map, get warned when one leaves its zone or loses power, and stop the engine safely from your phone. English, Arabic and Kurdish.",
+};
+
+/**
+ * The public homepage: one night drive through Erbil, told by scrolling.
+ * Hero (the city switches on) → Story (pinned: leaves the lot, crosses a
+ * line, safe engine cut, directions to the car) → Features → live demo map →
+ * three steps → call to action. Animation lives in components/landing/*
+ * (GSAP, loaded on this page only); every scene has a reduced-motion state.
+ */
 export default function HomePage() {
   return (
-    <>
-      <Hero />
-      <Features />
-
-      <section id="demo" className="border-t py-20">
-        <div className="container grid items-center gap-12 lg:grid-cols-2">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Watch your fleet move in real time
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              This is a live, interactive preview. Three vehicles broadcasting
-              their position, speed, and operational status — exactly how it
-              feels inside Carva Fleet.
-            </p>
-            <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <strong className="text-foreground">In Transit</strong> — moving,
-                live telematics streaming
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                <strong className="text-foreground">Idle</strong> — parked with
-                engine on
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-red-500" />
-                <strong className="text-foreground">Maintenance Required</strong>{" "}
-                — flagged for service
-              </li>
-            </ul>
-            <Button className="mt-7" asChild>
-              <Link href="/fleet">
-                Explore the demo dashboard
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          <LiveDemo />
-        </div>
-      </section>
-
-      <div className="border-t bg-muted/20">
-        <Pricing />
-      </div>
-
-      <CtaBanner />
-    </>
+    <div className="landing -mt-16">
+      <LandingHero />
+      <LandingStats />
+      <LandingStory />
+      <LandingFeatures />
+      <LandingDemoMap />
+      <LandingSteps />
+      <LandingCta />
+    </div>
   );
 }

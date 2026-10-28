@@ -7,7 +7,24 @@ export type VehicleStatus =
   | "in_transit"
   | "idle"
   | "maintenance"
+  /** Connected recently but no fresh data (Traccar's "unknown"). */
+  | "unknown"
   | "offline";
+
+/**
+ * Why a vehicle's position cannot be trusted. `null` means it is healthy.
+ *
+ * These all used to look identical on the roster, which only ever showed the
+ * last state it could read - which is how a car that had been driven all day
+ * still read "Idle . 1m ago":
+ *
+ *   never   - the tracker has never reported at all.
+ *   silent  - nothing has arrived from it for a long time.
+ *   delayed - it IS uploading, but replaying a backlog it recorded while it had
+ *             no data connection, so its newest fix is hours behind now.
+ *   no_fix  - it is uploading live, but with no usable GPS position behind it.
+ */
+export type SignalIssue = "never" | "silent" | "delayed" | "no_fix";
 
 export type FuelType = "diesel" | "petrol" | "electric" | "hybrid";
 
@@ -43,6 +60,25 @@ export interface Driver {
   hoursThisWeek: number;
 }
 
+/** One GPS unit fitted to a vehicle. Several of these can share a car. */
+export interface VehicleTracker {
+  deviceId: number;
+  name: string;
+  /** The tracker's unique id / IMEI. */
+  uniqueId: string;
+  model?: string | null;
+  online: boolean;
+  /** Empty when this tracker has never reported. */
+  lastUpdated: string;
+  /** Whether this tracker currently has a position at all. */
+  hasFix: boolean;
+  speedKmh: number;
+  /** Latest position attributes (power, rssi, blocked, …) for this unit. */
+  attributes?: Record<string, unknown>;
+  /** The unit whose readings represent the car right now. */
+  primary: boolean;
+}
+
 export interface Vehicle {
   id: string;
   /** Human-friendly unit name, e.g. "Truck 014". */
@@ -69,8 +105,33 @@ export interface Vehicle {
   lng?: number;
   /** Device connectivity (online vs offline). */
   online?: boolean;
+  /**
+   * ISO time the newest position was actually RECORDED - the only timestamp
+   * that says how old the dot on the map is. Deliberately separate from
+   * `lastUpdated`, the time the packet ARRIVED: a tracker draining a backlog it
+   * buffered while it had no data connection keeps `lastUpdated` at "just now"
+   * while shipping fixes from hours ago.
+   */
+  lastFixAt?: string;
+  /** Why this vehicle is not reporting normally; null/undefined when healthy. */
+  signalIssue?: SignalIssue | null;
+  /**
+   * Whether `heading` is a live direction of travel. False when parked: a GPS
+   * course is meaningless at rest and trackers report 0, which is NOT north.
+   */
+  headingValid?: boolean;
+  /**
+   * Every tracker fitted to this car. A car with one GPS has a single entry;
+   * a car with a hidden backup unit has several. The vehicle's own live
+   * fields come from whichever tracker is `primary` (the freshest fix).
+   */
+  trackers?: VehicleTracker[];
+  /** Traccar group id when several trackers are grouped into one car. */
+  groupId?: number;
   /** Ignition state, if the tracker reports it. */
   ignition?: boolean;
+  /** Battery charging state, if the tracker reports it. */
+  charge?: boolean;
   /** GSM / signal strength, if reported. */
   gsm?: number;
   /** Numeric Traccar device id (for the commands API); real devices only. */

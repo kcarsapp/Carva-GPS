@@ -26,6 +26,10 @@ export const TRACKER_PRESETS: TrackerPreset[] = [
   { model: 'MV720', port: '5013', protocol: 'h02' },
   { model: 'MV730', port: '5013', protocol: 'h02' },
   { model: 'MV740', port: '5013', protocol: 'h02' },
+  // Proven in production: Winnes TK905B-4G registers over jt808 on 5015 with
+  // its ID zero-padded to 12 digits; classic 2G TK905s use watch on 5093.
+  { model: 'TK905B-4G', port: '5015', protocol: 'jt808' },
+  { model: 'TK905 (2G)', port: '5093', protocol: 'watch' },
 ];
 
 export function presetFor(model: string | undefined): TrackerPreset | undefined {
