@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
+import { queryOverpass } from "@/lib/overpass";
 import { requireAdmin } from "@/lib/require-admin";
 import {
   EMPTY_HAZARD_FILE,
@@ -33,7 +34,6 @@ const HAZARDS_PATH =
     path.dirname(process.env.CARVA_ALERT_SETTINGS ?? "/var/lib/carva/alert-settings.json"),
     "road-hazards.json",
   );
-const OVERPASS_URL = process.env.OVERPASS_URL ?? "https://overpass-api.de/api/interpreter";
 
 async function current(): Promise<RoadHazardFile> {
   try {
@@ -98,22 +98,8 @@ export async function POST(req: NextRequest) {
 
   let pulled: RoadHazard[];
   try {
-    const res = await fetch(OVERPASS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "CarvaFleet/1.0 (https://gps.carvarent.com; fleet@carvarent.com)",
-        Accept: "application/json",
-      },
-      body: new URLSearchParams({ data: overpassQuery(bbox) }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(100_000),
-    });
-    if (!res.ok) {
-      return NextResponse.json({ error: `overpass_${res.status}` }, { status: 502 });
-    }
-    const data = (await res.json()) as { elements?: unknown };
-    pulled = hazardsFromOverpass(data.elements);
+    // Up to a 5° box: give each try longer, still under nginx's 120 s here.
+    pulled = hazardsFromOverpass(await queryOverpass(overpassQuery(bbox), 2, 50_000));
   } catch (e) {
     return NextResponse.json({ error: "overpass_failed", message: (e as Error).message }, { status: 502 });
   }

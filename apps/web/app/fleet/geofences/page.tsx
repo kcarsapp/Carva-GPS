@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RepairShopFinder } from "@/components/dashboard/repair-shop-finder";
+import type { ShopBbox } from "@/lib/repair-shops";
 import {
   GeofenceEditor,
   type DrawMode,
@@ -130,6 +132,9 @@ export default function GeofencesPage() {
   );
   /** The "what kind of zone?" chooser shown before drawing a new one. */
   const [picking, setPicking] = React.useState(false);
+  /** The map's visible area, for "Find repair shops". */
+  const [viewBounds, setViewBounds] = React.useState<ShopBbox | null>(null);
+  const [findingShops, setFindingShops] = React.useState(false);
 
   /* ------------------------------ Loading ------------------------------- */
 
@@ -405,10 +410,21 @@ export default function GeofencesPage() {
         title={t("geo.title")}
         description={t("geo.desc")}
         action={
-          <Button size="sm" onClick={() => setPicking(true)} disabled={form !== null}>
-            <Plus className="h-4 w-4" />
-            {t("geo.new")}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setFindingShops(true)}
+              disabled={form !== null}
+            >
+              <Wrench className="h-4 w-4" />
+              {t("geo.shops.button")}
+            </Button>
+            <Button size="sm" onClick={() => setPicking(true)} disabled={form !== null}>
+              <Plus className="h-4 w-4" />
+              {t("geo.new")}
+            </Button>
+          </>
         }
       />
 
@@ -634,8 +650,22 @@ export default function GeofencesPage() {
         onDraftChange={setDraft}
         onFinishPolygon={() => setMode("none")}
         defaultRadius={pendingRadius}
+        onView={setViewBounds}
         className="mb-4 h-[420px] sm:h-[480px]"
       />
+
+      {findingShops && (
+        <RepairShopFinder
+          bounds={viewBounds}
+          geofences={geofences}
+          devices={devices}
+          onClose={() => setFindingShops(false)}
+          onCreated={() => {
+            void loadGeofences();
+            void loadLinks();
+          }}
+        />
+      )}
 
       {loading && (
         <p className="mb-3 text-sm text-muted-foreground">{t("geo.loading")}</p>

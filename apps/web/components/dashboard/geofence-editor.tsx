@@ -59,6 +59,7 @@ export function GeofenceEditor({
   onDraftChange,
   onFinishPolygon,
   defaultRadius,
+  onView,
   className,
 }: {
   /** Saved geofences, already parsed into drawable shapes. */
@@ -73,6 +74,8 @@ export function GeofenceEditor({
   onFinishPolygon: () => void;
   /** Radius given to a circle the moment its centre is placed, in metres. */
   defaultRadius: number;
+  /** The visible area [west, south, east, north], after every move. */
+  onView?: (bounds: [number, number, number, number]) => void;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -95,6 +98,8 @@ export function GeofenceEditor({
   onFinishRef.current = onFinishPolygon;
   const onSelectRef = React.useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onViewRef = React.useRef(onView);
+  onViewRef.current = onView;
 
   const centerHandleRef = React.useRef<maplibregl.Marker | null>(null);
   const radiusHandleRef = React.useRef<maplibregl.Marker | null>(null);
@@ -138,7 +143,14 @@ export function GeofenceEditor({
       "bottom-right",
     );
 
+    const reportView = () => {
+      const b = map.getBounds();
+      onViewRef.current?.([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+    };
+    map.on("moveend", reportView);
+
     map.on("load", () => {
+      reportView();
       // Saved zones underneath, the draft on top of them.
       map.addSource("zones", { type: "geojson", data: emptyCollection() });
       map.addLayer({

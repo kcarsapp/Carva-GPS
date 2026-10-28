@@ -13,12 +13,23 @@ import {
 } from "@/lib/basemaps";
 import { useI18n } from "@/lib/i18n-provider";
 import { HAZARD_COLORS, type Bbox, type HazardKind, type RoadHazard } from "@/lib/road-hazards";
+import {
+  BUMP_ICON_ID,
+  cameraIconId,
+  ensureHazardIcons,
+  hazardIconUrl,
+} from "@/lib/hazard-icons";
+
+/** Below this zoom pins are plain dots; from it on, full icons. */
+const ICON_ZOOM = 12.5;
+const HAZARD_LAYERS = ["hazards-dots", "hazards-icons"];
 
 /**
  * Speed cameras + bumps. Unlike the POI map (one DOM marker per pin), the
- * pins are a GeoJSON circle layer: an OpenStreetMap import can bring in
- * thousands of bumps, which DOM markers cannot pan smoothly. Only the pin
- * being added or moved is a (draggable) DOM marker.
+ * pins are GeoJSON layers: an OpenStreetMap import brings in well over a
+ * thousand, which DOM markers cannot pan smoothly. Zoomed out they are dots;
+ * zoomed in, camera badges (with their limit) and bump warning signs. Only
+ * the pin being added or moved is a (draggable) DOM marker.
  */
 export function HazardMap({
   hazards,
@@ -93,18 +104,47 @@ export function HazardMap({
         layers: [
           { id: "carto", type: "raster", source: "carto" },
           {
-            id: "hazards",
+            id: "hazards-dots",
             type: "circle",
             source: "hazards",
+            maxzoom: ICON_ZOOM,
             paint: {
               "circle-color": ["get", "color"],
               "circle-radius": [
                 "interpolate", ["linear"], ["zoom"],
                 8, ["case", ["get", "selected"], 6, 2.5],
-                14, ["case", ["get", "selected"], 11, 7],
+                ICON_ZOOM, ["case", ["get", "selected"], 9, 5.5],
               ],
               "circle-stroke-color": ["case", ["get", "selected"], "#4f46e5", "#ffffff"],
               "circle-stroke-width": ["case", ["get", "selected"], 3, 1.5],
+            },
+          },
+          {
+            // Selection ring under the icon.
+            id: "hazards-halo",
+            type: "circle",
+            source: "hazards",
+            minzoom: ICON_ZOOM,
+            filter: ["==", ["get", "selected"], true],
+            paint: {
+              "circle-color": "rgba(79,70,229,.22)",
+              "circle-radius": 24,
+              "circle-stroke-color": "#4f46e5",
+              "circle-stroke-width": 2.5,
+            },
+          },
+          {
+            id: "hazards-icons",
+            type: "symbol",
+            source: "hazards",
+            minzoom: ICON_ZOOM,
+            layout: {
+              "icon-image": ["get", "icon"],
+              "icon-size": ["interpolate", ["linear"], ["zoom"], ICON_ZOOM, 0.7, 16, 1],
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+              // Selected one drawn last, on top of its neighbours.
+              "symbol-sort-key": ["case", ["get", "selected"], 1, 0],
             },
           },
         ],
@@ -124,16 +164,18 @@ export function HazardMap({
       const pad = 8;
       const hit = map.queryRenderedFeatures(
         [[e.point.x - pad, e.point.y - pad], [e.point.x + pad, e.point.y + pad]],
-        { layers: ["hazards"] },
+        { layers: HAZARD_LAYERS },
       )[0];
       onSelectRef.current(hit ? String(hit.properties?.id) : null);
     });
-    map.on("mouseenter", "hazards", () => {
-      if (!placingRef.current) map.getCanvas().style.cursor = "pointer";
-    });
-    map.on("mouseleave", "hazards", () => {
-      if (!placingRef.current) map.getCanvas().style.cursor = "";
-    });
+    for (const layer of HAZARD_LAYERS) {
+      map.on("mouseenter", layer, () => {
+        if (!placingRef.current) map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", layer, () => {
+        if (!placingRef.current) map.getCanvas().style.cursor = "";
+      });
+    }
     const reportView = () => {
       const b = map.getBounds();
       onViewRef.current([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
@@ -171,17 +213,31 @@ export function HazardMap({
 
   // Pins as one GeoJSON update — cheap even for thousands.
   React.useEffect(() => {
-    const src = mapRef.current?.getSource("hazards") as maplibregl.GeoJSONSource | undefined;
-    if (!src) return;
+    const map = mapRef.current;
+    const src = map?.getSource("hazards") as maplibregl.GeoJSONSource | undefined;
+    if (!map || !src) return;
+    // One camera image per distinct limit, registered before it is referenced.
+    ensureHazardIcons(map, hazards.filter((h) => h.kind === "camera").map((h) => h.limitKmh));
     src.setData({
       type: "FeatureCollection",
       features: hazards.map((h) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [h.lng, h.lat] },
-        properties: { id: h.id, color: HAZARD_COLORS[h.kind], selected: h.id === selectedId },
+        properties: {
+          id: h.id,
+          color: HAZARD_COLORS[h.kind],
+          icon: h.kind === "camera" ? cameraIconId(h.limitKmh) : BUMP_ICON_ID,
+          selected: h.id === selectedId,
+        },
       })),
     });
   }, [hazards, selectedId, ready]);
+
+  // Legend icons: drawn on a canvas, so only after mount (never on the server).
+  const [legend, setLegend] = React.useState<Record<HazardKind, string> | null>(null);
+  React.useEffect(() => {
+    setLegend({ camera: hazardIconUrl("camera"), bump: hazardIconUrl("bump") });
+  }, []);
 
   // The pin being added or moved: draggable, so the spot can be nudged.
   React.useEffect(() => {
@@ -244,7 +300,12 @@ export function HazardMap({
       <div className="absolute bottom-3 start-3 z-10 flex gap-3 rounded-lg border bg-background/95 px-3 py-1.5 text-xs shadow-sm">
         {(["camera", "bump"] as const).map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: HAZARD_COLORS[k] }} />
+            {legend ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a canvas data URL, nothing to optimise
+              <img src={legend[k]} alt="" className="h-5 w-5" />
+            ) : (
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: HAZARD_COLORS[k] }} />
+            )}
             {t(`road.kind.${k}`)}
           </span>
         ))}

@@ -32,5 +32,6 @@ export const config = {
     '/api/alert-settings',
     '/api/road-hazards',
     '/api/road-alerts',
+    '/api/repair-shops',
   ],
 };
