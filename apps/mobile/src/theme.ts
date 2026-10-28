@@ -1,0 +1,31 @@
+export const colors = {
+  ink: '#07101F',
+  inkRaised: '#0C1830',
+  inkSoft: '#12213C',
+  line: 'rgba(190, 214, 255, 0.13)',
+  lineStrong: 'rgba(190, 214, 255, 0.22)',
+  text: '#F5F8FF',
+  muted: '#8FA1C1',
+  dim: '#60708E',
+  lime: '#D9FF5B',
+  mint: '#61F2C5',
+  cyan: '#6CDEFF',
+  amber: '#FFC968',
+  coral: '#FF777B',
+  purple: '#A791FF',
+  white: '#FFFFFF',
+};
+
+export const mapStyle = [
+  { elementType: 'geometry', stylers: [{ color: '#07101F' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#7387AA' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#07101F' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#213858' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0B1A31' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#0B2A32' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#173152' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0A1A31' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#22466E' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#102440' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#07192C' }] },
+] as const;

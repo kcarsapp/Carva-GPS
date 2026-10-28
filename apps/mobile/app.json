@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Carva Pulse",
+    "slug": "carva-pulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "carvapulse",
+    "description": "A real-time command center for your Carva GPS fleet.",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carvarent.pulse",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Carva Pulse uses your location only to centre the live fleet map.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.carvarent.pulse",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-location"
+    ],
+    "extra": {
+      "carvaApiUrl": "https://gps.carvarent.com",
+      "eas": {
+        "projectId": "25e58452-c4c3-4721-ae96-8ff3a42cfe24"
+      }
+    },
+    "owner": "adilm123"
+  }
+}
