@@ -162,6 +162,37 @@ function drawBump(): HTMLCanvasElement {
   return c;
 }
 
+/**
+ * Direction-of-travel arrow, drawn pointing up (north) and rotated on the
+ * map by the hazard's bearing. Only one-sided hazards get one.
+ */
+function drawArrow(): HTMLCanvasElement {
+  const { c, ctx } = canvas();
+  const cx = 22;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx, 8); // tip
+  ctx.lineTo(cx + 10, 22);
+  ctx.lineTo(cx + 4, 22);
+  ctx.lineTo(cx + 4, 34);
+  ctx.lineTo(cx - 4, 34);
+  ctx.lineTo(cx - 4, 22);
+  ctx.lineTo(cx - 10, 22);
+  ctx.closePath();
+  ctx.save();
+  ctx.shadowColor = "rgba(15,23,42,.35)";
+  ctx.shadowBlur = 3;
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#ffffff";
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = "#1e3a8a";
+  ctx.fill();
+  return c;
+}
+
+export const ARROW_ICON_ID = "hz-arrow";
+
 export function cameraIconId(limit: number | null | undefined): string {
   return limit != null ? `hz-cam-${Math.round(limit)}` : "hz-cam";
 }
@@ -176,6 +207,7 @@ function addCanvas(map: maplibregl.Map, id: string, c: HTMLCanvasElement) {
 /** Register every icon these hazards need (one per distinct camera limit). */
 export function ensureHazardIcons(map: maplibregl.Map, limits: Iterable<number | null | undefined>) {
   addCanvas(map, BUMP_ICON_ID, drawBump());
+  addCanvas(map, ARROW_ICON_ID, drawArrow());
   const seen = new Set<string>();
   for (const l of limits) {
     const id = cameraIconId(l);

@@ -16,6 +16,14 @@
 // Plain module on purpose — the API route (server) and the page (client)
 // both import from here.
 
+import {
+  ROAD_HIGHWAYS,
+  SNAP_M,
+  decidingWay,
+  hazardBearing,
+  type OsmWay,
+} from "@/lib/osm-road-direction";
+
 export const HAZARD_KINDS = ["camera", "bump"] as const;
 export type HazardKind = (typeof HAZARD_KINDS)[number];
 
@@ -32,6 +40,13 @@ export interface RoadHazard {
   osmId?: number;
   /** An admin changed this OSM item; re-imports leave it alone. */
   edited?: boolean;
+  /**
+   * The direction of travel it applies to, in compass degrees (0 = north,
+   * 90 = east). null = both directions. On a divided road a bump or camera
+   * sits on ONE carriageway only; without this, a car on the other side
+   * 15-20 m away would be counted too.
+   */
+  bearing?: number | null;
 }
 
 export interface RoadHazardFile {
@@ -85,7 +100,13 @@ export function sanitizeHazard(raw: unknown): RoadHazard | null {
     source,
     ...(source === "osm" && finite(r.osmId) ? { osmId: r.osmId } : {}),
     ...(r.edited === true ? { edited: true } : {}),
+    bearing: finite(r.bearing) ? normalizeBearing(r.bearing) : null,
   };
+}
+
+/** Any angle → [0, 360), rounded to a whole degree. */
+export function normalizeBearing(deg: number): number {
+  return ((Math.round(deg) % 360) + 360) % 360;
 }
 
 /** Total: any input becomes a valid file (bad rows are dropped). */
@@ -201,22 +222,71 @@ export function parseMaxspeed(raw: unknown): number | null {
 
 const BUMP_VALUES = new Set(["bump", "hump", "table", "cushion", "yes"]);
 
-/** Overpass QL for every camera and bump node in a box. */
+/**
+ * Overpass QL for every camera and bump node in a box, plus the roads within
+ * SNAP_M of each — needed to tell which direction of travel it applies to
+ * (lib/osm-road-direction.ts) and the road's own limit for a camera without one.
+ */
 export function overpassQuery([w, s, e, n]: Bbox): string {
   const box = `${s},${w},${n},${e}`;
   return (
     `[out:json][timeout:90];(` +
     `node["highway"="speed_camera"](${box});` +
     `node["traffic_calming"~"^(bump|hump|table|cushion|yes)$"](${box});` +
-    `);out body;`
+    `)->.h;.h out body;` +
+    `way(around.h:${SNAP_M})["highway"~"${ROAD_HIGHWAYS}"];out body geom;`
   );
+}
+
+function asWay(el: Record<string, unknown>): OsmWay | null {
+  if (el.type !== "way" || !finite(el.id) || !Array.isArray(el.nodes) || !Array.isArray(el.geometry)) {
+    return null;
+  }
+  const geometry = (el.geometry as { lat?: unknown; lon?: unknown }[])
+    .filter((p) => finite(p?.lat) && finite(p?.lon)) as { lat: number; lon: number }[];
+  if (geometry.length !== el.nodes.length) return null;
+  return {
+    id: el.id,
+    nodes: el.nodes as number[],
+    geometry,
+    tags: (el.tags && typeof el.tags === "object" ? el.tags : {}) as Record<string, string>,
+  };
 }
 
 /** Overpass `elements` → hazards (source "osm"). Unknown shapes are skipped. */
 export function hazardsFromOverpass(elements: unknown): RoadHazard[] {
   if (!Array.isArray(elements)) return [];
+  const records = elements as Record<string, unknown>[];
+  const ways = records.map(asWay).filter((w): w is OsmWay => !!w);
+  // Only the ways near a hazard are relevant; index every ~550 m cell each
+  // segment's box touches (a long straight segment has no vertex mid-way).
+  const byCell = new Map<string, Set<OsmWay>>();
+  for (const way of ways) {
+    for (let i = 0; i + 1 < way.geometry.length; i++) {
+      const a = way.geometry[i], b = way.geometry[i + 1];
+      const r0 = Math.floor(Math.min(a.lat, b.lat) * 200), r1 = Math.floor(Math.max(a.lat, b.lat) * 200);
+      const c0 = Math.floor(Math.min(a.lon, b.lon) * 200), c1 = Math.floor(Math.max(a.lon, b.lon) * 200);
+      if ((r1 - r0 + 1) * (c1 - c0 + 1) > 400) continue; // absurd segment, skip
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          const k = `${r}:${c}`;
+          if (!byCell.has(k)) byCell.set(k, new Set());
+          byCell.get(k)!.add(way);
+        }
+      }
+    }
+  }
+  const waysNear = (lat: number, lon: number) => {
+    const out = new Set<OsmWay>();
+    const r = Math.floor(lat * 200), c = Math.floor(lon * 200);
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) byCell.get(`${r + dr}:${c + dc}`)?.forEach((w) => out.add(w));
+    }
+    return [...out];
+  };
+
   const out: RoadHazard[] = [];
-  for (const el of elements as Record<string, unknown>[]) {
+  for (const el of records) {
     if (el?.type !== "node" || !finite(el.id) || !finite(el.lat) || !finite(el.lon)) continue;
     const tags = (el.tags && typeof el.tags === "object" ? el.tags : {}) as Record<string, string>;
     const kind: HazardKind | null =
@@ -226,15 +296,20 @@ export function hazardsFromOverpass(elements: unknown): RoadHazard[] {
           ? "bump"
           : null;
     if (!kind) continue;
+    const node = { id: el.id, lat: el.lat, lon: el.lon };
+    const way = decidingWay(node, waysNear(el.lat, el.lon));
+    const bearing = hazardBearing(node, tags, way);
     out.push({
       id: `osm-${el.id}`,
       kind,
       lat: el.lat,
       lng: el.lon,
-      limitKmh: kind === "camera" ? parseMaxspeed(tags.maxspeed) : null,
+      // A camera's own limit first, then the limit of the road it watches.
+      limitKmh: kind === "camera" ? parseMaxspeed(tags.maxspeed) ?? parseMaxspeed(way?.tags.maxspeed) : null,
       name: (tags["name:en"] || tags.name || "").slice(0, 120),
       source: "osm",
       osmId: el.id,
+      bearing: bearing == null ? null : normalizeBearing(bearing),
     });
   }
   return out;

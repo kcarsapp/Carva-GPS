@@ -46,6 +46,26 @@ interface Draft {
   name: string;
   /** Text, so the field can be empty (= Settings default). */
   limit: string;
+  /** Direction of travel it applies to; null = both directions. */
+  bearing: number | null;
+}
+
+/** The eight arrow buttons of the direction picker. */
+const COMPASS: { deg: number; arrow: string; label: string }[] = [
+  { deg: 0, arrow: "↑", label: "N" },
+  { deg: 45, arrow: "↗", label: "NE" },
+  { deg: 90, arrow: "→", label: "E" },
+  { deg: 135, arrow: "↘", label: "SE" },
+  { deg: 180, arrow: "↓", label: "S" },
+  { deg: 225, arrow: "↙", label: "SW" },
+  { deg: 270, arrow: "←", label: "W" },
+  { deg: 315, arrow: "↖", label: "NW" },
+];
+
+/** "↗ 37°" for a bearing. */
+function compassText(deg: number): string {
+  const nearest = COMPASS[Math.round(deg / 45) % 8];
+  return `${nearest.arrow} ${Math.round(deg)}°`;
 }
 
 type Notice = { tone: "ok" | "error"; text: string } | null;
@@ -100,7 +120,7 @@ export default function RoadHazardsPage() {
   function onPlace(lat: number, lng: number) {
     if (placing) {
       setPlacing(false);
-      setDraft({ id: null, kind: pendingKind, lat, lng, name: "", limit: "" });
+      setDraft({ id: null, kind: pendingKind, lat, lng, name: "", limit: "", bearing: null });
     } else if (draft) {
       setDraft({ ...draft, lat, lng });
     }
@@ -115,6 +135,7 @@ export default function RoadHazardsPage() {
       lng: h.lng,
       name: h.name ?? "",
       limit: h.limitKmh != null ? String(h.limitKmh) : "",
+      bearing: h.bearing ?? null,
     });
   }
 
@@ -158,6 +179,7 @@ export default function RoadHazardsPage() {
             lng: draft.lng,
             name: draft.name,
             limitKmh: draft.kind === "camera" ? limit : null,
+            bearing: draft.bearing,
           },
         ],
         remove: [],
@@ -331,6 +353,12 @@ export default function RoadHazardsPage() {
                       </dd>
                     </>
                   )}
+                  <dt className="text-muted-foreground">{t("road.direction")}</dt>
+                  <dd>
+                    {selected.bearing != null
+                      ? `${t("road.dir.one")} · ${compassText(selected.bearing)}`
+                      : t("road.dir.both")}
+                  </dd>
                   <dt className="text-muted-foreground">{t("road.source")}</dt>
                   <dd>
                     {selected.source === "osm"
@@ -367,6 +395,7 @@ export default function RoadHazardsPage() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>{t("road.how1")}</p>
                 <p>{t("road.how2")}</p>
+                <p>{t("road.how4")}</p>
                 {isAdmin && <p>{t("road.how3")}</p>}
                 <p className="text-xs">{t("road.osmCredit")}</p>
               </div>
@@ -447,6 +476,52 @@ function DraftForm({
           </span>
         </label>
       )}
+      <fieldset className="space-y-2">
+        <legend className="mb-1 text-xs font-medium text-muted-foreground">{t("road.direction")}</legend>
+        <div className="flex overflow-hidden rounded-lg border">
+          {([false, true] as const).map((one) => (
+            <button
+              key={String(one)}
+              type="button"
+              onClick={() =>
+                onChange({ ...draft, bearing: one ? (draft.bearing ?? 0) : null })
+              }
+              className={cn(
+                "flex-1 px-3 py-2 text-xs font-medium transition-colors",
+                (draft.bearing != null) === one ? "bg-primary text-primary-foreground" : "hover:bg-accent",
+              )}
+            >
+              {t(one ? "road.dir.one" : "road.dir.both")}
+            </button>
+          ))}
+        </div>
+        {draft.bearing != null && (
+          <>
+            <div className="grid grid-cols-8 gap-1" dir="ltr">
+              {COMPASS.map((c) => (
+                <button
+                  key={c.deg}
+                  type="button"
+                  aria-label={c.label}
+                  title={c.label}
+                  onClick={() => onChange({ ...draft, bearing: c.deg })}
+                  className={cn(
+                    "rounded-md border py-1.5 text-base leading-none transition-colors",
+                    Math.round(draft.bearing! / 45) % 8 === c.deg / 45
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "hover:bg-accent",
+                  )}
+                >
+                  {c.arrow}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("road.dir.hint")} ({compassText(draft.bearing)})
+            </p>
+          </>
+        )}
+      </fieldset>
       <p className="text-xs text-muted-foreground">{t("poi.dragHint")}</p>
       <div className="flex gap-2">
         <Button type="submit" disabled={saving}>

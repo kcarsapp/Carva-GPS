@@ -14,6 +14,7 @@ import {
 import { useI18n } from "@/lib/i18n-provider";
 import { HAZARD_COLORS, type Bbox, type HazardKind, type RoadHazard } from "@/lib/road-hazards";
 import {
+  ARROW_ICON_ID,
   BUMP_ICON_ID,
   cameraIconId,
   ensureHazardIcons,
@@ -134,6 +135,24 @@ export function HazardMap({
             },
           },
           {
+            // One-sided hazards: an arrow just ahead, pointing the way the
+            // traffic it applies to is driving.
+            id: "hazards-arrows",
+            type: "symbol",
+            source: "hazards",
+            minzoom: ICON_ZOOM,
+            filter: ["has", "bearing"],
+            layout: {
+              "icon-image": ARROW_ICON_ID,
+              "icon-rotate": ["get", "bearing"],
+              "icon-rotation-alignment": "map",
+              "icon-offset": [0, -34],
+              "icon-size": ["interpolate", ["linear"], ["zoom"], ICON_ZOOM, 0.45, 16, 0.65],
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+            },
+          },
+          {
             id: "hazards-icons",
             type: "symbol",
             source: "hazards",
@@ -228,6 +247,8 @@ export function HazardMap({
           color: HAZARD_COLORS[h.kind],
           icon: h.kind === "camera" ? cameraIconId(h.limitKmh) : BUMP_ICON_ID,
           selected: h.id === selectedId,
+          // Absent (not null) for two-way hazards, so ["has", "bearing"] works.
+          ...(h.bearing != null ? { bearing: h.bearing } : {}),
         },
       })),
     });

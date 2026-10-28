@@ -22,6 +22,13 @@
  * fast if it was fast everywhere we can see. That misses some real hits, but a
  * false "your driver hit a bump at 50" is worse than a missed one. Segments
  * longer than `maxGapSec` are skipped entirely: too much is unknown.
+ *
+ * WHY DIRECTION. On a divided road a bump or camera is on ONE side only, and
+ * the other carriageway runs 15-20 m away — inside the match radius. A hazard
+ * with a `bearing` (its direction of travel, read from the one-way OSM road
+ * it sits on) only counts a car heading within MAX_HEADING_DIFF of it. A car
+ * whose heading cannot be told (barely moving, no course) is NOT counted for
+ * such a hazard. A hazard without a bearing (two-way street) counts both ways.
  */
 
 const fs = require("fs");
@@ -32,6 +39,10 @@ const KNOTS_TO_KMH = 1.852;
 const CELL_DEG = 0.01;
 const M_PER_DEG_LAT = 110_540;
 const M_PER_DEG_LNG_EQ = 111_320;
+/** A car heading more than this off a hazard's bearing is on the other side. */
+const MAX_HEADING_DIFF = 60;
+/** Below this many metres between fixes the segment's own bearing is noise. */
+const MIN_SEGMENT_FOR_HEADING_M = 8;
 
 /* ------------------------------- loading -------------------------------- */
 
@@ -54,6 +65,7 @@ function sanitizeItems(raw) {
       lng: h.lng,
       limitKmh: finite(h.limitKmh) && h.limitKmh > 0 ? h.limitKmh : null,
       name: typeof h.name === "string" ? h.name.slice(0, 120) : "",
+      bearing: finite(h.bearing) ? ((h.bearing % 360) + 360) % 360 : null,
     });
   }
   return out;
@@ -132,6 +144,32 @@ function closestOnSegment(a, b, h) {
   return { t, distM: Math.sqrt(dx * dx + dy * dy), lengthM: Math.sqrt(len2) };
 }
 
+/** Compass bearing from a to b, degrees [0, 360). */
+function bearingDeg(a, b) {
+  const toRad = Math.PI / 180;
+  const y = Math.sin((b.lng - a.lng) * toRad) * Math.cos(b.lat * toRad);
+  const x =
+    Math.cos(a.lat * toRad) * Math.sin(b.lat * toRad) -
+    Math.sin(a.lat * toRad) * Math.cos(b.lat * toRad) * Math.cos((b.lng - a.lng) * toRad);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/** Smallest angle between two bearings, 0-180. */
+function angleBetween(a, b) {
+  const d = (((a - b) % 360) + 360) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+/**
+ * Which way the car was driving between fixes a and b: the line between
+ * them when it is long enough to mean something, else the tracker's own
+ * course. null when neither can be trusted.
+ */
+function travelHeading(a, b, lengthM) {
+  if (lengthM >= MIN_SEGMENT_FOR_HEADING_M) return bearingDeg(a, b);
+  return b.course ?? a.course ?? null;
+}
+
 /** Hazards in every grid cell the segment's padded bounding box touches. */
 function candidates(index, a, b, padM) {
   const padLat = padM / M_PER_DEG_LAT;
@@ -165,6 +203,8 @@ function toFix(p) {
     lat: p.latitude,
     lng: p.longitude,
     kmh: finite(p.speed) ? p.speed * KNOTS_TO_KMH : null,
+    // Traccar's course: degrees, 0 = north. Only meaningful while moving.
+    course: finite(p.course) && finite(p.speed) && p.speed > 1 ? p.course : null,
   };
 }
 
@@ -187,6 +227,11 @@ function crossingsBetween(index, a, b, opts) {
     const { t, distM, lengthM } = closestOnSegment(a, b, h);
     const radius = h.kind === "camera" ? opts.cameraRadiusM : opts.bumpRadiusM;
     if (distM > radius) continue;
+    if (h.bearing != null) {
+      // One-sided hazard: only a car driving that way can have hit it.
+      const heading = travelHeading(a, b, lengthM);
+      if (heading == null || angleBetween(heading, h.bearing) > MAX_HEADING_DIFF) continue;
+    }
     const avgKmh = (lengthM / dtSec) * 3.6;
     out.push({
       hazard: h,
@@ -222,6 +267,8 @@ module.exports = {
   closestOnSegment,
   toFix,
   crossingsBetween,
+  bearingDeg,
+  angleBetween,
   cameraLimitKmh,
   localDay,
 };
