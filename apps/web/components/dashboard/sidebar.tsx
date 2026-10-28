@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bell,
+  Camera,
   ChevronsLeft,
   ChevronsRight,
   Hexagon,
@@ -74,6 +75,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/fleet/geofences", label: "fleet.nav.geofences", icon: Hexagon, roles: ALL },
       { href: "/fleet/poi", label: "fleet.nav.poi", icon: MapPin, roles: ALL },
+      { href: "/fleet/road-hazards", label: "fleet.nav.roadHazards", icon: Camera, roles: ALL },
     ],
   },
   {

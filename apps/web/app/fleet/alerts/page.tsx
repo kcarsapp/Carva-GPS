@@ -11,6 +11,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   Bell,
+  Camera,
   CheckCheck,
   Gauge,
   Hexagon,
@@ -23,6 +24,7 @@ import {
   ShieldAlert,
   Terminal,
   User,
+  Waves,
   Wifi,
   WifiOff,
   Wrench,
@@ -61,6 +63,7 @@ import {
   type Severity,
   type TraccarEventRow,
 } from "@/lib/events";
+import { fetchRoadAlertRows, roadAlertDetail } from "@/lib/road-alerts";
 import type { TraccarDevice } from "@carva/shared";
 
 /** Sentinel for the "All vehicles" option — Traccar takes repeated deviceId. */
@@ -129,6 +132,8 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   textMessage: MessageSquare,
   commandResult: Terminal,
   driverChanged: User,
+  speedCamera: Camera,
+  roadBumps: Waves,
 };
 
 function eventIcon(row: TraccarEventRow): LucideIcon {
@@ -187,6 +192,7 @@ function EventItem({
   const severity = severityOf(row);
   const Icon = eventIcon(row);
   const href = replayHref(row);
+  const detail = roadAlertDetail(row, t);
   // formatAge yields "now", "4m"/"3h"/"2d", or "—" for an unreadable stamp —
   // only the middle form takes the translated "ago".
   const age = formatAge(row.eventTime, now);
@@ -228,6 +234,12 @@ function EventItem({
                 <Hexagon className="h-3 w-3" />
                 {geofence}
               </span>
+            </>
+          )}
+          {detail && (
+            <>
+              <span aria-hidden>·</span>
+              <span dir="auto">{detail}</span>
             </>
           )}
         </span>
@@ -340,13 +352,18 @@ export default function AlertsPage() {
       setLoading(true);
       setError(null);
       try {
-        const fetched = await fetchEvents({
-          deviceIds: ids,
-          from: span.from,
-          to: span.to,
-        });
+        const [fetched, road] = await Promise.all([
+          fetchEvents({ deviceIds: ids, from: span.from, to: span.to }),
+          // Camera/bump alerts come from our own server, not Traccar; if that
+          // feed is down the Traccar events must still show.
+          fetchRoadAlertRows({ deviceIds: ids, from: span.from, to: span.to }).catch(() => []),
+        ]);
         if (request !== requestRef.current) return;
-        setRows(fetched);
+        setRows(
+          [...fetched, ...road].sort(
+            (a, b) => +new Date(b.eventTime) - +new Date(a.eventTime) || b.id - a.id,
+          ),
+        );
       } catch (e) {
         if (request !== requestRef.current) return;
         setError(`${t("alerts.loadErr")} ${(e as Error).message}`);

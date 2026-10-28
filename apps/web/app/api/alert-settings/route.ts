@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
-import { SESSION_COOKIE, deriveRole, traccarBase, traccarCookieHeader } from "@/lib/auth";
+import { requireAdmin } from "@/lib/require-admin";
 import {
   DEFAULT_ALERT_SETTINGS,
   sanitizeAlertSettings,
@@ -26,35 +26,6 @@ const SETTINGS_PATH =
   process.env.CARVA_ALERT_SETTINGS ?? "/var/lib/carva/alert-settings.json";
 const STATUS_PATH =
   process.env.CARVA_MAILER_STATUS ?? path.join(path.dirname(SETTINGS_PATH), "mailer-status.json");
-
-type Admin = { email: string };
-
-/** The logged-in Traccar user, if they are an administrator. */
-async function requireAdmin(req: NextRequest): Promise<Admin | NextResponse> {
-  const jsessionid = req.cookies.get(SESSION_COOKIE)?.value;
-  if (!jsessionid) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  try {
-    const res = await fetch(`${traccarBase()}/api/session`, {
-      headers: { Cookie: traccarCookieHeader(jsessionid), Accept: "application/json" },
-      cache: "no-store",
-    });
-    if (!res.ok) return NextResponse.json({ error: "session_expired" }, { status: 401 });
-    const user = (await res.json()) as {
-      email?: string;
-      administrator?: boolean;
-      attributes?: Record<string, unknown>;
-    };
-    if (deriveRole(user) !== "general_admin") {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
-    return { email: user.email ?? "" };
-  } catch (e) {
-    return NextResponse.json(
-      { error: "traccar_unreachable", message: (e as Error).message },
-      { status: 502 },
-    );
-  }
-}
 
 async function readJson<T>(file: string): Promise<T | null> {
   try {

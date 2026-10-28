@@ -17,6 +17,8 @@
  *        - alarms the tracker reports (attributes.alarm: sos, powerCut, ...)
  *        - external power lost / restored (attributes.power voltage)
  *        - overspeed (speed above the device's speedLimit or the default)
+ *        - speed cameras passed too fast, and too many bumps crossed too fast
+ *          in a day (road-hazards.js; written to road-alerts.jsonl as well)
  *   3. Traccar devices — a tracker that was reporting and goes silent.
  *
  * Mail goes out through `curl smtps://` with a root-only netrc file, so no
@@ -35,6 +37,7 @@
 const fs = require("fs");
 const fsp = require("fs/promises");
 const { spawn } = require("child_process");
+const road = require("./road-hazards");
 
 /* ------------------------------- config ---------------------------------- */
 
@@ -63,6 +66,23 @@ const DEFAULTS = {
   maxLookbackMin: 120,
   dashboardUrl: "https://gps.carvarent.com",
   timeZone: "Asia/Baghdad",
+  /** Speed cameras + bumps, edited from the website (Fleet → Cameras & bumps). */
+  roadHazardsPath: "/var/lib/carva/road-hazards.json",
+  /** Camera / bump alerts for the website's Alerts page. One JSON per line. */
+  roadAlertsPath: "/var/lib/carva/road-alerts.jsonl",
+  /** Roll road-alerts.jsonl to .1 past this size (one generation kept). */
+  roadAlertsMaxBytes: 16 * 1024 * 1024,
+  /** A camera without its own limit enforces this. Settings can change it. */
+  cameraLimitKmh: 80,
+  /** Faster than this over a bump counts as a hit. Settings can change it. */
+  bumpMaxKmh: 25,
+  /** This many hits in one day (fleet time zone) raises an alert. */
+  bumpsPerDay: 3,
+  /** How close the car's path must pass to count (see road-hazards.js). */
+  cameraRadiusM: 40,
+  bumpRadiusM: 20,
+  /** Fixes further apart than this are not judged: too much is unknown. */
+  roadMaxGapSec: 45,
 };
 
 function loadConfig() {
@@ -160,6 +180,12 @@ function freshState() {
     status: {},
     /** Emails not yet delivered, retried every poll. */
     queue: [],
+    /** deviceId -> last usable fix, so a segment can span two polls. */
+    roadPrev: {},
+    /** "deviceId:hazardId" -> ms last counted (one pass = one crossing). */
+    roadLast: {},
+    /** deviceId -> { day, count, fastestKmh } fast bump crossings today. */
+    bumpDay: {},
   };
 }
 
@@ -361,6 +387,8 @@ function typeOfKey(key) {
   if (/:alarm:(powerCut|powerOff)$/.test(key) || key.includes(":power-")) return "powerCut";
   if (key.includes(":alarm:")) return "alarm";
   if (key.endsWith(":overspeed")) return "overspeed";
+  if (key.includes(":camera:")) return "speedCamera";
+  if (key.includes(":bumps:")) return "roadBumps";
   return "alarm";
 }
 
@@ -518,8 +546,133 @@ function alarmsOf(p) {
   return typeof raw === "string" && raw ? raw.split(",").map((s) => s.trim()).filter(Boolean) : [];
 }
 
-async function handleDevices(state, cfg, traccar, devices) {
+/* --------------------------- cameras + bumps ----------------------------- */
+
+const EMPTY_HAZARDS = road.buildIndex([]);
+/** The same hazard twice within this window is one pass, not two. */
+const ROAD_REPASS_MS = 120_000;
+
+/**
+ * Judge the segment prev→fix for one device. Every alert goes to `records`
+ * (the website's feed, regardless of email switches) and, through enqueue,
+ * to email. Record ids derive from the Traccar position id, so a restart that
+ * re-reads the same fixes writes the same ids and the website de-duplicates.
+ */
+function handleRoadSegment(state, cfg, hazards, d, name, prev, fix, records) {
+  const id = String(d.id);
+  const crossings = road.crossingsBetween(hazards, prev, fix, {
+    cameraRadiusM: cfg.cameraRadiusM,
+    bumpRadiusM: cfg.bumpRadiusM,
+    maxGapSec: cfg.roadMaxGapSec,
+  });
+  let n = 0;
+  for (const c of crossings) {
+    const passKey = `${id}:${c.hazard.id}`;
+    const atMs = +new Date(c.at);
+    if (atMs - (state.roadLast[passKey] || 0) < ROAD_REPASS_MS) continue;
+    state.roadLast[passKey] = atMs;
+    const kmh = Math.round(c.speedKmh);
+    const base = {
+      ts: c.at,
+      deviceId: d.id,
+      deviceName: name,
+      positionId: c.positionId,
+      lat: c.hazard.lat,
+      lng: c.hazard.lng,
+      speedKmh: kmh,
+      hazardId: c.hazard.id,
+      hazardName: c.hazard.name,
+    };
+
+    if (c.hazard.kind === "camera") {
+      const limit = road.cameraLimitKmh(c.hazard, cfg.cameraLimitKmh);
+      if (c.speedKmh <= limit) continue;
+      n = Math.min(n + 1, 7);
+      records.push({ ...base, id: c.positionId * 8 + n, kind: "speedCamera", limitKmh: limit });
+      enqueue(state, cfg, {
+        key: `${id}:camera:${c.hazard.id}`,
+        severity: "warning",
+        vehicle: name,
+        deviceId: d.id,
+        headline: `passed a speed camera at ${kmh} km/h (limit ${limit})`,
+        rows: [
+          ["Camera", c.hazard.name || "Speed camera"],
+          ["Speed", `${kmh} km/h`],
+          ["Limit", `${limit} km/h`],
+          ["Note", "Estimated from GPS: the lowest speed seen around the camera, so the real speed may have been higher."],
+        ],
+        at: c.at,
+        lat: c.hazard.lat,
+        lng: c.hazard.lng,
+      });
+      continue;
+    }
+
+    // Bump: only a fast crossing counts; the alert is the daily tally.
+    if (c.speedKmh <= cfg.bumpMaxKmh) continue;
+    const day = road.localDay(c.at, cfg.timeZone);
+    const tally = state.bumpDay[id]?.day === day ? state.bumpDay[id] : { day, count: 0, fastestKmh: 0 };
+    tally.count += 1;
+    tally.fastestKmh = Math.max(tally.fastestKmh, kmh);
+    state.bumpDay[id] = tally;
+    // Alert at the threshold and at every further multiple of it (3, 6, 9...),
+    // so a driver who keeps going gets reported again without one mail per bump.
+    if (tally.count % cfg.bumpsPerDay !== 0) continue;
+    records.push({
+      ...base,
+      id: c.positionId * 8,
+      kind: "roadBumps",
+      count: tally.count,
+      thresholdKmh: cfg.bumpMaxKmh,
+      fastestKmh: tally.fastestKmh,
+      day,
+    });
+    enqueue(state, cfg, {
+      key: `${id}:bumps:${day}:${tally.count}`,
+      severity: "warning",
+      vehicle: name,
+      deviceId: d.id,
+      headline: `crossed ${tally.count} speed bumps too fast today`,
+      rows: [
+        ["Bumps today", `${tally.count} crossed faster than ${cfg.bumpMaxKmh} km/h`],
+        ["Latest", `${kmh} km/h${c.hazard.name ? ` at ${c.hazard.name}` : ""}`],
+        ["Fastest today", `${tally.fastestKmh} km/h`],
+        ["Note", "Estimated from GPS: the lowest speed seen around each bump."],
+      ],
+      at: c.at,
+      lat: c.hazard.lat,
+      lng: c.hazard.lng,
+    });
+  }
+}
+
+/** Append road alerts for the website, rolling the file past its size cap. */
+async function appendRoadAlerts(cfg, records) {
+  if (records.length === 0) return;
+  const text = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
+  try {
+    if (cfg.roadAlertsMaxBytes > 0) {
+      const size = await fsp.stat(cfg.roadAlertsPath).then((s) => s.size, () => 0);
+      if (size + Buffer.byteLength(text) > cfg.roadAlertsMaxBytes) {
+        await fsp.rename(cfg.roadAlertsPath, `${cfg.roadAlertsPath}.1`);
+      }
+    }
+    await fsp.appendFile(cfg.roadAlertsPath, text, "utf8");
+  } catch (e) {
+    log("error", "road_alerts_write_failed", { error: e.message });
+  }
+}
+
+/** Forget passes older than the re-pass window so state cannot grow forever. */
+function pruneRoadState(state, now) {
+  for (const [k, at] of Object.entries(state.roadLast)) {
+    if (now - at > ROAD_REPASS_MS * 30) delete state.roadLast[k];
+  }
+}
+
+async function handleDevices(state, cfg, traccar, devices, hazards = EMPTY_HAZARDS) {
   const now = Date.now();
+  const roadRecords = [];
   for (const d of devices) {
     const id = String(d.id);
     const name = d.name || `Device ${d.id}`;
@@ -583,6 +736,17 @@ async function handleDevices(state, cfg, traccar, devices) {
       if (!state.lastPosTime[id] || +new Date(p.fixTime) > +new Date(state.lastPosTime[id])) {
         state.lastPosTime[id] = p.fixTime;
       }
+
+      // Cameras + bumps judge the segment from the previous fix to this one.
+      const fix = road.toFix(p);
+      const prev = state.roadPrev[id];
+      if (fix && (!prev || fix.at > prev.at)) {
+        if (fix.at >= (state.startedAtMs || 0)) {
+          handleRoadSegment(state, cfg, hazards, d, name, prev, fix, roadRecords);
+        }
+        state.roadPrev[id] = fix;
+      }
+
       // The overlap window can reach back before the very first start.
       if (+new Date(p.fixTime) < (state.startedAtMs || 0)) continue;
 
@@ -662,6 +826,8 @@ async function handleDevices(state, cfg, traccar, devices) {
 
     state.seenPos[id] = [...seen].slice(-500);
   }
+  await appendRoadAlerts(cfg, roadRecords);
+  pruneRoadState(state, now);
 }
 
 /** First start: remember "now" everywhere so nothing historical is mailed. */
@@ -690,7 +856,16 @@ async function initialize(state, cfg, traccar) {
 
 /* -------------------------- website settings ----------------------------- */
 
-const ALERT_TYPES = ["geofence", "engineCut", "alarm", "powerCut", "offline", "overspeed"];
+const ALERT_TYPES = [
+  "geofence",
+  "engineCut",
+  "alarm",
+  "powerCut",
+  "offline",
+  "overspeed",
+  "speedCamera",
+  "roadBumps",
+];
 // Same rules as apps/web/lib/alert-settings.ts (sanitizeAlertSettings).
 const EMAIL_RE = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/;
 
@@ -724,6 +899,9 @@ async function loadSettings(cfg) {
       types: Object.fromEntries(ALERT_TYPES.map((t) => [t, true])),
       speedLimitKmh: DEFAULTS.speedLimitKmh,
       offlineAfterMin: DEFAULTS.offlineAfterMin,
+      cameraLimitKmh: DEFAULTS.cameraLimitKmh,
+      bumpMaxKmh: DEFAULTS.bumpMaxKmh,
+      bumpsPerDay: DEFAULTS.bumpsPerDay,
       testRequestedAt: null,
       updatedAt: new Date().toISOString(),
       updatedBy: "mailer (seeded from MAIL_TO)",
@@ -745,6 +923,10 @@ async function loadSettings(cfg) {
     ),
     speedLimitKmh: clampInt(raw.speedLimitKmh, 30, 250, DEFAULTS.speedLimitKmh),
     offlineAfterMin: clampInt(raw.offlineAfterMin, 5, 1440, DEFAULTS.offlineAfterMin),
+    // Ranges must match apps/web/lib/alert-settings.ts.
+    cameraLimitKmh: clampInt(raw.cameraLimitKmh, 20, 200, DEFAULTS.cameraLimitKmh),
+    bumpMaxKmh: clampInt(raw.bumpMaxKmh, 5, 80, DEFAULTS.bumpMaxKmh),
+    bumpsPerDay: clampInt(raw.bumpsPerDay, 1, 50, DEFAULTS.bumpsPerDay),
     testRequestedAt: typeof raw.testRequestedAt === "string" ? raw.testRequestedAt : null,
   };
 }
@@ -754,6 +936,9 @@ function applySettings(cfg, s) {
   cfg.types = s.types;
   cfg.speedLimitKmh = s.speedLimitKmh;
   cfg.offlineAfterMin = s.offlineAfterMin;
+  cfg.cameraLimitKmh = s.cameraLimitKmh;
+  cfg.bumpMaxKmh = s.bumpMaxKmh;
+  cfg.bumpsPerDay = s.bumpsPerDay;
 }
 
 /** "Send test email" from the website: answered once per request. */
@@ -777,6 +962,8 @@ async function handleTestRequest(state, cfg, s) {
           ["Emailed warnings", on.join(", ") || "none"],
           ["Speed limit", `${cfg.speedLimitKmh} km/h`],
           ["Offline after", `${cfg.offlineAfterMin} min`],
+          ["Camera limit", `${cfg.cameraLimitKmh} km/h (when the camera has none)`],
+          ["Bumps", `${cfg.bumpsPerDay} a day faster than ${cfg.bumpMaxKmh} km/h`],
         ],
         at: result.at,
       },
@@ -814,6 +1001,7 @@ async function main() {
 
   const traccar = new Traccar(cfg);
   const state = await loadState(cfg.statePath);
+  const loadHazards = road.createHazardLoader(cfg.roadHazardsPath, log);
   let stopping = false;
   for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => (stopping = true));
 
@@ -825,7 +1013,7 @@ async function main() {
       const devices = await traccar.get("/api/devices");
       const names = new Map(devices.map((d) => [d.id, d.name]));
       await handleAlertLog(state, cfg, traccar, names);
-      await handleDevices(state, cfg, traccar, devices);
+      await handleDevices(state, cfg, traccar, devices, loadHazards());
       // Persist decisions BEFORE sending, so a crash mid-send re-sends at most
       // (a duplicate email is harmless; a lost warning is not).
       await saveState(cfg.statePath, state);
@@ -850,4 +1038,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { render, mime, encodeHeader, alarmsOf, handleDevices, handleAlertLog, freshState, enqueue, loadSettings, applySettings, handleTestRequest, typeOfKey };
+module.exports = { render, mime, encodeHeader, alarmsOf, handleDevices, handleAlertLog, freshState, enqueue, loadSettings, applySettings, handleTestRequest, typeOfKey, handleRoadSegment, DEFAULTS };

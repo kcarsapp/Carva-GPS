@@ -170,6 +170,9 @@ const TYPE_SEVERITY: Record<string, Severity> = {
   lowBattery: "warning",
   maintenance: "warning",
   deviceFuelDrop: "warning",
+  // Not Traccar's: the mailer's camera/bump checks (lib/road-alerts.ts).
+  speedCamera: "warning",
+  roadBumps: "warning",
   // info — normal operating chatter
   ignitionOn: "info",
   ignitionOff: "info",
@@ -305,6 +308,8 @@ const KNOWN_TYPES = new Set([
   "driverChanged",
   "powerCut",
   "powerRestored",
+  "speedCamera",
+  "roadBumps",
 ]);
 
 /** Alarm kinds with wording under `alarm.*`. */

@@ -1,5 +1,5 @@
 [Unit]
-Description=Carva Fleet alert mailer (emails geofence rules, alarms, power cut, offline, overspeed)
+Description=Carva Fleet alert mailer (emails geofence rules, alarms, power cut, offline, overspeed, speed cameras, bumps)
 Documentation=file:/opt/carva/automation/mailer.js
 After=network-online.target traccar.service carva-automation.service
 Wants=network-online.target

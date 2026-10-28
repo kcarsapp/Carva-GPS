@@ -152,6 +152,7 @@ On the VPS, as root:
 # 1. Code
 mkdir -p /opt/carva/automation
 # copy runner.js, config.example.json, README.md from infra/automation/ into /opt/carva/automation/
+# (the mailer also needs mailer.js AND road-hazards.js side by side there — it require()s it)
 install -m 0644 carva-automation.service /etc/systemd/system/carva-automation.service
 
 # 2. Config — starts DISABLED on purpose

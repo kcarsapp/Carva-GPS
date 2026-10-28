@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   AlertTriangle,
+  Camera,
   Check,
   Gauge,
   Hexagon,
@@ -12,6 +13,7 @@ import {
   Power,
   Send,
   ShieldAlert,
+  Waves,
   WifiOff,
   X,
   type LucideIcon,
@@ -25,6 +27,9 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n-provider";
 import {
   ALERT_TYPES,
+  BUMPS_PER_DAY_RANGE,
+  BUMP_SPEED_RANGE,
+  CAMERA_DEFAULT_LIMIT_RANGE,
   MAX_RECIPIENTS,
   OFFLINE_RANGE,
   SPEED_LIMIT_RANGE,
@@ -48,7 +53,44 @@ const TYPE_ICON: Record<AlertType, LucideIcon> = {
   powerCut: AlertTriangle,
   offline: WifiOff,
   overspeed: Gauge,
+  speedCamera: Camera,
+  roadBumps: Waves,
 };
+
+/** A small number field with a unit suffix, for the threshold settings. */
+function NumberField({
+  label,
+  unit,
+  range,
+  value,
+  onChange,
+}: {
+  label: string;
+  unit: string;
+  range: readonly [number, number];
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="relative block">
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={range[0]}
+          max={range[1]}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="h-10 pe-14"
+        />
+        <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          {unit}
+        </span>
+      </span>
+    </label>
+  );
+}
 
 function fmt(iso?: string | null) {
   if (!iso) return "—";
@@ -265,6 +307,34 @@ export function AlertEmailsCard() {
                   </span>
                 </label>
               </div>
+
+              <div className="space-y-2 border-t pt-3">
+                <h4 className="text-xs font-semibold">{t("mail.road")}</h4>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <NumberField
+                    label={t("mail.cameraLimit")}
+                    unit="km/h"
+                    range={CAMERA_DEFAULT_LIMIT_RANGE}
+                    value={draft.cameraLimitKmh}
+                    onChange={(v) => setDraft({ ...draft, cameraLimitKmh: v })}
+                  />
+                  <NumberField
+                    label={t("mail.bumpSpeed")}
+                    unit="km/h"
+                    range={BUMP_SPEED_RANGE}
+                    value={draft.bumpMaxKmh}
+                    onChange={(v) => setDraft({ ...draft, bumpMaxKmh: v })}
+                  />
+                  <NumberField
+                    label={t("mail.bumpsPerDay")}
+                    unit={t("mail.perDay")}
+                    range={BUMPS_PER_DAY_RANGE}
+                    value={draft.bumpsPerDay}
+                    onChange={(v) => setDraft({ ...draft, bumpsPerDay: v })}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">{t("mail.roadHint")}</p>
+              </div>
             </section>
 
             {/* Which warnings */}
@@ -382,5 +452,8 @@ function strip(s: AlertSettings) {
     types: s.types,
     speedLimitKmh: s.speedLimitKmh,
     offlineAfterMin: s.offlineAfterMin,
+    cameraLimitKmh: s.cameraLimitKmh,
+    bumpMaxKmh: s.bumpMaxKmh,
+    bumpsPerDay: s.bumpsPerDay,
   };
 }

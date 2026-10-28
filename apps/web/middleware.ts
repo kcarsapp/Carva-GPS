@@ -30,5 +30,7 @@ export const config = {
     '/api/geocode',
     '/api/maptile/:path*',
     '/api/alert-settings',
+    '/api/road-hazards',
+    '/api/road-alerts',
   ],
 };
